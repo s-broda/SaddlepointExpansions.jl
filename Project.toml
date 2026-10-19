@@ -1,0 +1,23 @@
+name = "SaddlepointExpansions"
+uuid = "c72c5791-ee94-46f9-8bd0-900fdbcf9afd"
+version = "0.1.0"
+authors = ["Simon A. Broda", "Raymond Kan"]
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
+
+[compat]
+LinearAlgebra = "1"
+QuadGK = "2"
+SpecialFunctions = "2"
+TaylorSeries = "0.23"
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

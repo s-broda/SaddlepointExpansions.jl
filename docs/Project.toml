@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+SaddlepointExpansions = "c72c5791-ee94-46f9-8bd0-900fdbcf9afd"
+
+[compat]
+Documenter = "1"
