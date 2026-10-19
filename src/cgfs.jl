@@ -171,3 +171,56 @@ function common_component_cgf(m::AbstractVector, lam::AbstractVector=zeros(lengt
     K = t -> sum(k1(t[j], mm[j], ll[j]) for j in 1:d) + k1(sum(t), mm[d+1], ll[d+1])
     return CGF(K, d; domain=t -> all(t .< 1//2) && sum(t) < 1//2)
 end
+
+"""
+    sinhc(x)
+
+``\\sinh(x)/x``, equal to one at zero, for numbers and Taylor polynomials; at a Taylor polynomial
+with zero constant term the series ``\\sum_m x^{2m}/(2m+1)!`` is used, so that the removable
+singularity causes no `DomainError`. The cumulant generating function of the uniform
+distribution on ``[-1, 1]`` is ``\\log \\mathrm{sinhc}(t)``, and the saddlepoint iteration starts at
+``t = 0``, where ``\\sinh(t)/t`` would fail. See also [`sincu`](@ref) and [`uniform_cgf`](@ref).
+"""
+sinhc(x::Number) = iszero(x) ? one(x) : sinh(x)/x
+function sinhc(x::TaylorN)
+    iszero(constant_term(x)) || return sinh(x)/x
+    N = TaylorSeries.order(x)
+    x2 = x*x
+    s = one(x); term = one(x)
+    for m in 1:N÷2
+        term = term*x2/((2m)*(2m + 1))
+        s += term
+    end
+    return s
+end
+
+"""
+    sincu(x)
+
+``\\sin(x)/x`` (unnormalized; `Base.sinc` is ``\\sin(πx)/(πx)``), equal to one at zero, for
+numbers and Taylor polynomials, with the removable singularity handled as in [`sinhc`](@ref).
+"""
+sincu(x::Number) = iszero(x) ? one(x) : sin(x)/x
+function sincu(x::TaylorN)
+    iszero(constant_term(x)) || return sin(x)/x
+    N = TaylorSeries.order(x)
+    x2 = x*x
+    s = one(x); term = one(x)
+    for m in 1:N÷2
+        term = -term*x2/((2m)*(2m + 1))
+        s += term
+    end
+    return s
+end
+
+"""
+    uniform_cgf(a=-1, b=1) -> CGF
+
+Uniform distribution on ``[a, b]``: ``K(t) = \\log\\mathrm{sinhc}\\{(b-a)t/2\\} + (a+b)t/2``, finite
+for all ``t`` ([`sinhc`](@ref) handles ``t = 0``).
+"""
+function uniform_cgf(a::Real=-1, b::Real=1)
+    b > a || throw(ArgumentError("uniform_cgf: b must exceed a"))
+    h = (b - a)/2; m = (a + b)/2
+    return CGF(t -> log(sinhc(h*t[1])) + m*t[1], 1)
+end

@@ -148,6 +148,29 @@
         @test abs(r4.F[3] - ex4.Fup) <= max(1e-4*ex4.Fup, 4r4.info.err[3])
     end
 
+    @testset "uniform distribution (removable singularity at the origin)" begin
+        # Irwin-Hall: S = sum of n U(0,1); the mean of n U(-1,1) variables is (2S - n)/n
+        ih_cdf(x, n) = x <= 0 ? 0.0 : x >= n ? 1.0 : sum((-1)^k*binomial(n, k)*(x - k)^n for k in 0:floor(Int, x))/factorial(n)
+        ih_pdf(x, n) = (x <= 0 || x >= n) ? 0.0 : sum((-1)^k*binomial(n, k)*(x - k)^(n - 1) for k in 0:floor(Int, x))/factorial(n - 1)
+        D = derivatives(uniform_cgf(), [0.0], 6)
+        @test D[(2,)] ≈ 1/3 && abs(D[(3,)]) < 1e-15 && D[(4,)] ≈ -2/15 && D[(6,)] ≈ 16/63
+        @test sinhc(0.0) == 1.0 && sincu(0.0) == 1.0 && sinhc(0.5) ≈ sinh(0.5)/0.5 && sincu(0.5) ≈ sin(0.5)/0.5
+        n = 10; x = 0.3
+        Ku = sample_mean(uniform_cgf(), n)
+        ex = 1 - ih_cdf((n*x + n)/2, n); fex = n/2*ih_pdf((n*x + n)/2, n)
+        r = tailprob(Ku, x; order=4); f = density(Ku, x; order=4)
+        ec = abs.((r.F .- ex) ./ ex); ep = abs.((f.f .- fex) ./ fex)
+        @test ec[1] < 2e-2 && ec[2] < 5e-4 && ec[3] < 5e-5 && ec[4] < 5e-6
+        @test ep[1] < 3e-2 && ep[2] < 6e-4 && ep[3] < 5e-6 && ep[4] < 1e-5
+        @test abs(r.tau) > 0 && r.status == "ok"
+        # a cgf with sinhc at a nonzero point and the general U(a, b)
+        Kab = uniform_cgf(2.0, 5.0)
+        @test derivatives(Kab, [0.0], 2)[(1,)] ≈ 3.5 && derivatives(Kab, [0.0], 2)[(2,)] ≈ 9/12
+        Kb = CGF(t -> log(sinhc(t[1])) + log(sinhc(t[1] + t[2])) + log(sinhc(t[2])), 2)
+        rb = tailprob(sample_mean(Kb, 8), [0.4, 0.3]; order=3)
+        @test rb.status == "ok" && all(rb.tau .> 0) && abs(rb.F[3]/rb.F[2] - 1) < 1e-3
+    end
+
     @testset "univariate and ratios" begin
         Kg = gamma_cgf(3.0)
         ex = gamma_exact(6.0, 3)

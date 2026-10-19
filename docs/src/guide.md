@@ -13,7 +13,9 @@ K = CGF(t -> -3*log(1 - t[1]) - 2*log(1 - 2t[2]), 2; domain = t -> t[1] < 1 && t
 The function is evaluated on vectors of truncated multivariate Taylor series to generate its
 derivatives, and on `BigFloat` values for variable precision. It must therefore be written
 generically: arithmetic, `exp`, `log`, `sqrt`, powers, `sum`, products with constant matrices
-and vectors, all work; type assertions, `Float64(...)` conversions and calls into
+and vectors, the trigonometric and hyperbolic functions, all work (for ``\sinh(t)/t`` and
+``\sin(t)/t`` use [`sinhc`](@ref) and [`sincu`](@ref), which handle the removable singularity at
+the origin); type assertions, `Float64(...)` conversions and calls into
 non-generic numerical libraries do not. For determinants and inverses of matrices that depend
 on `t`, write the factorization in generic arithmetic as [`quadratic_forms_cgf`](@ref) does, or
 use that constructor.

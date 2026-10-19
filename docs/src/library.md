@@ -12,6 +12,7 @@ by Taylor-mode differentiation and evaluated in any precision.
 | [`quadratic_forms_cgf`](@ref)`(Mats; Sigma, mu, scale)` | quadratic forms ``z'A_iz`` in ``z \sim N(\mu, \Sigma)`` |
 | [`wishart_diag_cgf`](@ref)`(V, n)` | the diagonal of ``W \sim W_d(n, V)`` |
 | [`common_component_cgf`](@ref)`(m, lam)` | ``Q_j = X_j + X_0`` with independent noncentral chi-squared ``X_i`` |
+| [`uniform_cgf`](@ref)`(a, b)` | uniform on ``[a, b]`` |
 
 The examples of the paper are: `exponential_sums_cgf([1 0; 1 1; 0 1]; n=10, shift=[-2, -2])`
 (Wang 1990, Table 1), `exponential_sums_cgf([1 0; 1 1; 0 1]; n)` (Kolassa and Li 2010, Tables 3 to
@@ -35,7 +36,12 @@ Base.:+(::CGF, ::CGF)
 
 ## Writing your own
 
-Any generic Julia function works. Two patterns from the library:
+Any generic Julia function works: arithmetic, `exp`, `log`, `sqrt`, powers, the trigonometric
+and hyperbolic functions and their inverses are all defined for Taylor polynomials by
+TaylorSeries.jl. Removable singularities are the one trap: ``\sinh(t)/t`` is ``0/0`` at
+``t = 0``, where the saddlepoint iteration starts, and the Taylor arithmetic cannot take the
+limit; use [`sinhc`](@ref) and [`sincu`](@ref), which switch to the series there. Two patterns
+from the library:
 
 ```julia
 # a sum of independent parts, one per component, plus a common part

@@ -17,7 +17,8 @@ main functions are [`tailprob`](@ref), [`density`](@ref), [`ratio_density`](@ref
 [`ratio_tailprob`](@ref), [`saddlepoint`](@ref) and [`derivatives`](@ref). Ready-made cumulant
 generating functions for common models are in the library ([`normal_cgf`](@ref),
 [`gamma_cgf`](@ref), [`ncx2_cgf`](@ref), [`quadratic_forms_cgf`](@ref),
-[`wishart_diag_cgf`](@ref), [`exponential_sums_cgf`](@ref), [`common_component_cgf`](@ref)),
+[`wishart_diag_cgf`](@ref), [`exponential_sums_cgf`](@ref), [`common_component_cgf`](@ref),
+[`uniform_cgf`](@ref)),
 and cumulant generating functions can be transformed ([`reflect`](@ref), [`marginal`](@ref),
 [`linear_combination`](@ref), [`sample_mean`](@ref)).
 
@@ -38,7 +39,7 @@ export CGF, derivatives, saddlepoint, tailprob, density, ratio_density, ratio_ta
        reflect, marginal, linear_combination, sample_mean, shift
 # library of cumulant generating functions
 export normal_cgf, gamma_cgf, ncx2_cgf, quadratic_forms_cgf, wishart_diag_cgf,
-       exponential_sums_cgf, common_component_cgf
+       exponential_sums_cgf, common_component_cgf, uniform_cgf, sinhc, sincu
 # derivative interface (Kfun(nu, t)) and the engine
 export spa_uni, spa_ratio_pdf, spa_bi, spa_bi_at, spa_orthant2, spa_mv, spa_tri, spa_mv_at,
        spa_orthant, spa_saddle, qf_Kmulti, orthant2, orthant3,
