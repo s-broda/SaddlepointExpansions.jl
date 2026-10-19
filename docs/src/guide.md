@@ -27,7 +27,7 @@ Cumulant generating functions can be transformed: [`reflect`](@ref) (sign change
 components), [`marginal`](@ref), [`linear_combination`](@ref) (``Y = B'X``),
 [`sample_mean`](@ref) (``nK(t/n)``), [`shift`](@ref) (``X + c``), and `K1 + K2` for the sum of
 independent vectors. A library of ready-made cumulant generating functions is described in
-[Library of cumulant generating functions](@ref).
+[the library](library.md).
 
 ## Tail probabilities
 

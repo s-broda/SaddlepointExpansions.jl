@@ -47,5 +47,5 @@ K = CGF(t -> sum(-m[j]/2*log(1 - 2t[j]) for j in 1:d) - m0/2*log(1 - 2sum(t)), d
 ```
 
 If the cumulant generating function is defined by a recursion or a numerical procedure that
-cannot be differentiated this way, use the [derivative interface](@ref "The derivative interface")
+cannot be differentiated this way, use the [derivative interface](lowlevel.md)
 and supply the derivatives yourself.
