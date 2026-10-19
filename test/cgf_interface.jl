@@ -60,6 +60,16 @@
         @test norm(tau - tau2) <= 1e-13 && info.decrement <= 1e-10
         s, _ = saddlepoint(gamma_cgf(3.0), 6.0)
         @test s ≈ 1 - 3/6
+        # a formula that is finite and convex beyond the pole: the convexity test along the step
+        # keeps the iteration on the strip without a domain predicate
+        Kabs = CGF(t -> -3*log(abs(1 - t[1])), 1)
+        for xx in (6.0, 30.0, 300.0)
+            sa, _ = saddlepoint(Kabs, xx)
+            @test sa ≈ 1 - 3/xx
+        end
+        Kabs2 = CGF(t -> -sum(log.(abs.(1 .- A*t))), 2)
+        sa2, _ = saddlepoint(Kabs2, [30.0, 40.0]); st2, _ = saddlepoint(exponential_sums_cgf(A), [30.0, 40.0])
+        @test sa2 ≈ st2
         @test_throws ArgumentError saddlepoint(K, 1.0)
     end
 

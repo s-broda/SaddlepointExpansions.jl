@@ -84,7 +84,14 @@ outside the domain. Newton's method with backtracking on the convex objective ``
 step is accepted only if it stays in the domain and decreases the objective). Convergence is
 measured by the Newton decrement ``δ=\\{g'K''(τ)^{-1}g\\}^{1/2}``, ``g=K'(τ)-x``, which is
 invariant under linear changes of the units of the components of ``X``; the Newton step is computed
-after scaling ``K''`` to unit diagonal. Once ``δ ≤ 10^{-6}`` the iteration is in its quadratic
+after scaling ``K''`` to unit diagonal. A step is also rejected when the objective falls below its
+tangent plane at the current iterate, ``f(τ+λs) < f(τ) + λg's``, when the directional derivative
+decreases along the step, ``\\{g(τ+λs)-g(τ)\\}'s < 0``, or when the midpoint of the step is outside
+the domain: on the strip the objective is convex, so it lies above its tangent plane and its
+gradient is monotone, and a violation means the step has crossed a pole of ``K`` into a region
+where its formula happens to be finite (as ``-\\log|1-t|`` is beyond ``t=1``, where the derivative
+changes sign). These are necessary conditions, so they protect cumulant generating functions
+given without a domain predicate in the usual cases; the predicate remains the safe way. Once ``δ ≤ 10^{-6}`` the iteration is in its quadratic
 phase: full Newton steps are taken without the objective test, which rounding errors in ``K`` would
 otherwise make fail, until ``δ ≤`` `tol` (``10^{-12}``, or ``ε^{0.7}`` in other floating-point
 types) or for at most three steps (twelve). Before that phase the iteration is declared stalled,
@@ -105,6 +112,7 @@ function spa_saddle(Kfun, x::AbstractVector, tau0=nothing)
     length(tau) == d || throw(ArgumentError("spa_saddle: tau0 must have the length of x"))
     tol, nqmax = T === Float64 ? (T(1e-12), 3) : (eps(T)^T(0.7), 12)
     z = ntuple(_ -> 0, d)
+    e(j) = ntuple(i -> i == j ? 1 : 0, d)
     obj(t) = Kfun(z, t) - dot(t, x)
     f = obj(tau)
     isfinite(f) || error("spa_saddle: the starting value is outside the domain of K")
@@ -124,10 +132,23 @@ function spa_saddle(Kfun, x::AbstractVector, tau0=nothing)
         tau + step == tau &&                             # the step is below rounding level
             error("spa_saddle: the iteration stalled at rounding level with decrement $(round(Float64(delta); sigdigits=2))")
         lam = one(T)
+        gs = dot(g, step)
         local tn, fn
         while true
             tn = tau + lam*step; fn = obj(tn)
-            (isfinite(fn) && fn - f <= T(1e-4)*lam*dot(g, step)) && break
+            if isfinite(fn) && fn - f <= T(1e-4)*lam*gs
+                # convexity along the step: on the strip the objective lies above its tangent plane,
+                # f(tau + lam s) >= f(tau) + lam g's; a step across a pole of K into a region where
+                # its formula is still finite (e.g. -log|1-t| beyond t = 1) falls below it and is
+                # rejected; the midpoint test catches a pole between two finite values
+                ctol = sqrt(eps(T))*max(one(T), abs(f), abs(fn))
+                if fn - f >= lam*gs - ctol && isfinite(obj(tau + (lam/2)*step))
+                    # and the directional derivative must not decrease along the step,
+                    # (g(tn) - g(tau))'s >= 0, which a logarithmic pole violates by a sign flip
+                    gn = T[Kfun(e(j), tn) for j in 1:d] .- x
+                    all(isfinite, gn) && dot(gn .- g, step) >= -sqrt(eps(T))*max(one(T), abs(gs)) && break
+                end
+            end
             lam /= 2
             (lam < 1e-14 || tn == tau) &&
                 error("spa_saddle: saddlepoint iteration failed to find a descent step (decrement $(round(Float64(delta); sigdigits=2)))")
