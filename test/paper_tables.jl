@@ -3,7 +3,6 @@
 # printed value plus an absolute margin for the rounding of the exact values (seven digits).
 # (The complete tables are reproduced by the drivers of the replication repository.)
 
-const quadgk = SaddlepointExpansions.quadgk
 
 function matchrow(computed, printed, exact_digits)
     marg = 6e-2 .* abs.(printed) .+ 2*10.0^(-exact_digits)

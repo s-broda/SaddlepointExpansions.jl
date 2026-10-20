@@ -32,11 +32,11 @@ module SaddlepointExpansions
 using LinearAlgebra
 using SpecialFunctions: erfc, erfcx, erfcinv, loggamma, gamma_inc, beta_inc
 using QuadGK: quadgk
-using TaylorSeries: TaylorSeries, JetSpace, TaylorN, variables, getcoeff, constant_term
+using TaylorSeries: TaylorSeries, JetSpace, TaylorN, HomogeneousPolynomial, variables, getcoeff, constant_term
 
 # cumulant generating functions and the high-level interface
 export CGF, derivatives, saddlepoint, tailprob, density, ratio_density, ratio_tailprob,
-       reflect, marginal, linear_combination, sample_mean, shift
+       reflect, marginal, linear_combination, sample_mean, shift, taylor_from_coefficients
 # library of cumulant generating functions
 export normal_cgf, gamma_cgf, ncx2_cgf, quadratic_forms_cgf, wishart_diag_cgf,
        exponential_sums_cgf, common_component_cgf, uniform_cgf, sinhc, sincu
@@ -60,6 +60,7 @@ include("exact.jl")
 include("multivariate.jl")
 include("kfuns.jl")
 include("cgf.jl")
+include("ratios.jl")
 include("api.jl")
 include("cgfs.jl")
 

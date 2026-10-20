@@ -4,7 +4,7 @@
 
 ```@autodocs
 Modules = [SaddlepointExpansions]
-Pages = ["cgf.jl", "api.jl"]
+Pages = ["cgf.jl", "api.jl", "ratios.jl"]
 Private = false
 ```
 

@@ -9,7 +9,7 @@ by Taylor-mode differentiation and evaluated in any precision.
 | [`gamma_cgf`](@ref)`(a, b)` | gamma with shape ``a`` and scale ``b``; `gamma_cgf(1, b)` is exponential |
 | [`ncx2_cgf`](@ref)`(m, lam)` | noncentral chi-squared ``\chi^2_m(\lambda)`` |
 | [`exponential_sums_cgf`](@ref)`(A; n, shift)` | mean of ``n`` copies of ``A'U + \ell``, ``U`` unit exponentials |
-| [`quadratic_forms_cgf`](@ref)`(Mats; Sigma, mu, scale)` | quadratic forms ``z'A_iz`` in ``z \sim N(\mu, \Sigma)`` |
+| [`quadratic_forms_cgf`](@ref)`(Mats; Sigma, mu, scale)` | quadratic forms ``z'A_iz`` in ``z \sim N(\mu, \Sigma)``, Taylor polynomials in closed form |
 | [`wishart_diag_cgf`](@ref)`(V, n)` | the diagonal of ``W \sim W_d(n, V)`` |
 | [`common_component_cgf`](@ref)`(m, lam)` | ``Q_j = X_j + X_0`` with independent noncentral chi-squared ``X_i`` |
 | [`uniform_cgf`](@ref)`(a, b)` | uniform on ``[a, b]`` |

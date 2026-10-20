@@ -107,6 +107,20 @@ through the saddlepoint of ``K_W(s) = K(s, -rs)`` (Theorem 4 of the paper), and 
 probability is the univariate expansion for ``W = X_1 - rX_2`` at ``0``. The derivatives of the
 amplitude ``\partial_2 K`` come from the same Taylor expansion as those of ``K_W``.
 
+*Several ratios.* With a vector `r` of length ``d``, `K` is the cumulant generating function of
+``(X_1, …, X_d, Y_1, …, Y_d)``, or of ``(X_1, …, X_d, Y)`` for a common denominator, and
+`ratio_density` returns the joint density of ``(X_1/Y_1, …, X_d/Y_d)`` at `r` (Theorem 4 with the
+amplitude expansion of Corollary 1 of the paper), while `ratio_tailprob` returns the orthant
+probability ``P(R ≥ r)``, with `lower` and `signs` as in `tailprob`. The sample autocorrelations
+at lags one and two, for example, are two ratios of quadratic forms with a common denominator:
+
+```julia
+N = 50; Mc = I - ones(N, N)/N
+A(j) = (diagm(j => ones(N - j)) + diagm(-j => ones(N - j)))/2
+K = quadratic_forms_cgf([Mc*A(1)*Mc, Mc*A(2)*Mc, Mc])
+ratio_density(K, [-1, -1]/sqrt(N); order=5).f
+```
+
 For the noncentral ``F`` distribution, for example, with ``Q_1 \sim \chi^2_m(\lambda)`` and
 ``Q_2 \sim \chi^2_n`` independent, ``F = (Q_1/m)/(Q_2/n)``:
 
@@ -128,6 +142,16 @@ Newton's method with backtracking. Both are what `tailprob` and `density` use in
 derivatives at the saddlepoint are generated once, to the degree ``2M + 1`` needed by the order
 ``M``, and the whitened Taylor coefficients (see below) are generated directly rather than by
 substitution.
+
+## Closed-form Taylor polynomials
+
+Automatic differentiation is the default, but a `CGF` can carry its Taylor polynomials in closed
+form through the keyword `taylor`, a function `(t, N, M)` returning the Taylor polynomial of
+degree `N` of ``K(t + Mv)`` as a `TaylorN` (built from a coefficient table with
+[`taylor_from_coefficients`](@ref)), or `nothing` outside the domain. [`quadratic_forms_cgf`](@ref)
+uses this with the trace recursion of the paper evaluated directly in the whitened directions,
+which makes large matrices cheap, and the transformations carry the option along. Pass
+`closedform = false` to differentiate the generic formula instead.
 
 ## Variable precision
 

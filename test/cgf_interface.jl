@@ -181,6 +181,52 @@
         @test rb.status == "ok" && all(rb.tau .> 0) && abs(rb.F[3]/rb.F[2] - 1) < 1e-3
     end
 
+    @testset "closed-form Taylor polynomials and vectors of ratios" begin
+        toep(r, n) = [r^abs(i - j) for i in 1:n, j in 1:n]
+        n = 8
+        Kq = quadratic_forms_cgf([toep(0.5, n), Matrix(1.0I, n, n)]; Sigma=toep(0.3, n), mu=fill(0.5, n))
+        Kg = quadratic_forms_cgf([toep(0.5, n), Matrix(1.0I, n, n)]; Sigma=toep(0.3, n), mu=fill(0.5, n), closedform=false)
+        @test Kq.taylor !== nothing && Kg.taylor === nothing
+        D1 = derivatives(Kq, [0.05, -0.02], 7); D2 = derivatives(Kg, [0.05, -0.02], 7)
+        @test all(abs(D1[nu] - D2[nu]) <= 1e-12*max(1, abs(D2[nu])) for nu in keys(D1))
+        @test derivatives(Kq, [0.5, 0.5], 2) === nothing
+        r1 = tailprob(Kq, [14.0, 13.0]; order=4); r2 = tailprob(Kg, [14.0, 13.0]; order=4)
+        @test reldiff(r1.F, r2.F) <= 1e-12                   # whitened coefficients in closed form vs AD
+        # the option survives the transformations
+        Ks = shift(sample_mean(reflect(Kq, [1, -1]), 3), [0.1, 0.2]) + marginal(quadratic_forms_cgf([toep(0.5, n), Matrix(1.0I, n, n), toep(0.2, n)]), [1, 3])
+        Kt = shift(sample_mean(reflect(Kg, [1, -1]), 3), [0.1, 0.2]) + marginal(quadratic_forms_cgf([toep(0.5, n), Matrix(1.0I, n, n), toep(0.2, n)]; closedform=false), [1, 3])
+        @test Ks.taylor !== nothing
+        Ds = derivatives(Ks, [0.03, -0.04], 5); Dt = derivatives(Kt, [0.03, -0.04], 5)
+        @test all(abs(Ds[nu] - Dt[nu]) <= 1e-11*max(1, abs(Dt[nu])) for nu in keys(Ds))
+        # one ratio: the Rice code and the general code agree
+        f1 = ratio_density(Kq, 1.2; order=4).f; f2 = ratio_density(Kq, 1.2; order=4, general=true).f
+        @test reldiff(f1, f2) <= 1e-12
+        @test reldiff(ratio_density(Kq, [1.2]; order=4).f, f1) <= 1e-12
+        # two independent ratios of gamma variables: products of beta-prime densities and beta cdfs
+        a = [3.0, 4.0, 5.0, 6.0]
+        K4 = CGF(t -> -sum(a[i]*log(1 - t[i]) for i in 1:4), 4; domain=t -> all(t .< 1))
+        r = [0.7, 0.9]
+        lgm = SaddlepointExpansions.loggamma
+        bp(x, p, q) = x^(p - 1)*(1 + x)^(-p - q)/exp(lgm(p) + lgm(q) - lgm(p + q))
+        f = ratio_density(K4, r; order=5).f
+        ex = bp(r[1], a[1], a[3])*bp(r[2], a[2], a[4])
+        ef = abs.((f .- ex) ./ ex)
+        @test ef[1] < 0.1 && ef[2] < 3e-3 && ef[3] < 2e-4 && ef[5] < 1e-5
+        F = ratio_tailprob(K4, r; order=5, lower=true).F
+        exF = SaddlepointExpansions.beta_inc(a[1], a[3], r[1]/(1 + r[1]))[1]*SaddlepointExpansions.beta_inc(a[2], a[4], r[2]/(1 + r[2]))[1]
+        @test abs(F[5] - exF)/exF < 1e-6 && abs(F[1] - exF)/exF < 2e-2
+        # the rate n^-4 of order four as n doubles
+        e4 = [abs(ratio_density(sample_mean(K4, nn), r; order=4).f[4]/(bp(r[1], nn*a[1], nn*a[3])*bp(r[2], nn*a[2], nn*a[4])) - 1) for nn in (20, 40)]
+        @test 10 < e4[1]/e4[2] < 22
+        # a common denominator: K of (X1, X2, Y)
+        K3 = CGF(t -> -3log(1 - t[1]) - 4log(1 - t[2]) - 5log(1 - t[3]), 3; domain=t -> all(t .< 1))
+        gp(x, p) = x^(p - 1)*exp(-x - lgm(p))
+        exc = quadgk(y -> y^2*gp(0.5y, 3)*gp(0.8y, 4)*gp(y, 5), 0, Inf; rtol=1e-12)[1]
+        fc = ratio_density(K3, [0.5, 0.8]; order=4).f
+        @test abs(fc[4] - exc)/exc < 3e-5
+        @test_throws ArgumentError ratio_density(K4, [0.5, 0.5, 0.5, 0.5])
+    end
+
     @testset "univariate and ratios" begin
         Kg = gamma_cgf(3.0)
         ex = gamma_exact(6.0, 3)

@@ -94,8 +94,80 @@ function _chol_solve(L::AbstractMatrix, b::AbstractVector)
     return w
 end
 
+# Taylor polynomial of degree N in v of K(t + M v) for the joint cgf of the quadratic forms w'B_j w,
+# w ~ N(m, I): K(t) = -1/2 log det(I - 2C) + 1/2 m'{(I - 2C)^{-1} - I}m, C = Σ_j t_j B_j, times
+# scale. Closed form by the trace recursion in the directions Dir_i = Σ_j M_ji B_j: with
+# D = (I - 2C)^{-1} = L L', G_i = L' Dir_i L and y = L'm, the coefficient of v^a is
+# scale 2^{|a|-1}/|a| {tr F_a + |a| y'F_a y}, F_a the symmetrized sum of the products of the G_i in
+# every order; F is formed up to degree ⌈N/2⌉ and the higher traces by splitting, tr(F_g F_{a-g}).
+# nothing outside the domain (the MATLAB counterpart is qf_taylor, R. Kan).
+function _qf_taylor(B::Vector{<:AbstractMatrix}, m::AbstractVector, scale::Real, t::AbstractVector,
+                    N::Integer, M)
+    d = length(B); n = size(B[1], 1)
+    T = float(promote_type(eltype(t), eltype(B[1]), eltype(m), M === nothing ? Float64 : eltype(M)))
+    Mm = M === nothing ? Matrix{T}(I, d, d) : Matrix{T}(M)
+    k = size(Mm, 2)
+    N = max(N, 1)
+    C = zeros(T, n, n)
+    for j in 1:d
+        C .+= T(t[j]) .* B[j]
+    end
+    ch = cholesky(Symmetric(Matrix{T}(I, n, n) - 2C); check=false)
+    issuccess(ch) || return nothing
+    R = Matrix(ch.U)                                   # I - 2C = R'R
+    L = inv(R)                                         # D = L L'
+    y = L'*T.(m)
+    coeffs = Dict{NTuple{k,Int},T}()
+    coeffs[ntuple(_ -> 0, k)] = scale*(-sum(log.(diag(R))) + (dot(y, y) - dot(m, m))/2)
+    G = Vector{Matrix{T}}(undef, k)
+    for i in 1:k
+        Dir = zeros(T, n, n)
+        for j in 1:d
+            Mm[j, i] == 0 || (Dir .+= Mm[j, i] .* B[j])
+        end
+        Gi = L'*Dir*L
+        G[i] = (Gi + Gi')/2
+    end
+    h = cld(N, 2)
+    hasmean = any(!iszero, m)
+    F = Dict{NTuple{k,Int},Matrix{T}}()
+    Fy = Dict{NTuple{k,Int},Vector{T}}()
+    for l in 1:N, a in compositions(l, k)
+        if l <= h
+            if l == 1
+                Fa = G[findfirst(>(0), a)]
+            else
+                Fa = zeros(T, n, n)
+                for i in 1:k
+                    a[i] > 0 || continue
+                    Fa .+= G[i]*F[Base.setindex(a, a[i] - 1, i)]
+                end
+                Fa = (Fa + Fa')/2
+            end
+            F[a] = Fa
+            val = tr(Fa)
+            if hasmean
+                Fy[a] = Fa*y
+                val += l*dot(y, Fy[a])
+            end
+            coeffs[a] = scale*T(2)^(l - 1)/l*val
+        else
+            kk = l - h
+            tval = zero(T); mq = zero(T)
+            for gg in compositions(kk, k)
+                all(gg .<= a) || continue
+                rr = a .- gg
+                tval += sum(F[gg] .* F[rr])
+                hasmean && (mq += dot(Fy[gg], Fy[rr]))
+            end
+            coeffs[a] = scale*T(2)^(l - 1)/l*(tval + l*mq)
+        end
+    end
+    return taylor_from_coefficients(k, N, coeffs; T)
+end
+
 """
-    quadratic_forms_cgf(Mats; Sigma=nothing, mu=nothing, scale=1) -> CGF
+    quadratic_forms_cgf(Mats; Sigma=nothing, mu=nothing, scale=1, closedform=true) -> CGF
 
 Joint cumulant generating function of the quadratic forms ``Q_i = z'A_iz``, ``i = 1, …, d``,
 `Mats = [A_1, …, A_d]` (symmetric ``p × p``), in ``z ∼ N(μ, Σ)`` (default standard normal):
@@ -104,14 +176,17 @@ K(t) = -\\tfrac12\\log\\det(I - 2C) + ν'C(I-2C)^{-1}ν,\\qquad
 C = \\sum_i t_i\\,Σ^{1/2}A_iΣ^{1/2},\\quad ν = Σ^{-1/2}μ,
 ```
 multiplied by `scale` (the cumulant generating function of the sum of `scale` independent copies
-when `scale` is an integer). The domain is the set where ``I - 2C`` is positive definite. The
-determinant and the solve are computed through a Cholesky factorization written in generic
-arithmetic, so that the function can be differentiated by Taylor-mode differentiation; the cost
-of one evaluation with derivatives to degree ``N`` is about ``p^3/6`` products of truncated
-polynomials. For large ``p``, the closed-form derivatives of [`qf_Kmulti`](@ref) (trace
-recursion) are faster.
+when `scale` is an integer). The domain is the set where ``I - 2C`` is positive definite.
+
+With `closedform = true` (the default) the Taylor polynomials, including the whitened ones, are
+computed in closed form by the trace recursion of the paper in the whitened directions (the
+`taylor` option of [`CGF`](@ref)), so that large ``p`` costs ``p^3`` floating-point operations per
+product of matrices rather than per product of truncated polynomials. With `closedform = false`
+the function is differentiated by Taylor-mode differentiation through a Cholesky factorization
+written in generic arithmetic, at about ``p^3/6`` polynomial products per evaluation.
 """
-function quadratic_forms_cgf(Mats::AbstractVector; Sigma=nothing, mu=nothing, scale::Real=1)
+function quadratic_forms_cgf(Mats::AbstractVector; Sigma=nothing, mu=nothing, scale::Real=1,
+                             closedform::Bool=true)
     d = length(Mats)
     d >= 1 || throw(ArgumentError("quadratic_forms_cgf: Mats must be nonempty"))
     p = size(Mats[1], 1)
@@ -137,7 +212,9 @@ function quadratic_forms_cgf(Mats::AbstractVector; Sigma=nothing, mu=nothing, sc
         return scale == 1 ? v : scale*v
     end
     dom = t -> isposdef(Symmetric(Ip - 2*sum(t[i] .* B[i] for i in 1:d)))
-    return CGF(K, d; domain=dom)
+    m0 = nu === nothing ? zeros(p) : nu
+    tf = closedform ? ((t, N, M) -> _qf_taylor(B, m0, scale, t, N, M)) : nothing
+    return CGF(K, d; domain=dom, taylor=tf)
 end
 
 """

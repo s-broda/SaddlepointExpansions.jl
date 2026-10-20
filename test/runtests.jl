@@ -7,6 +7,7 @@
 # reference_matlab.jl: the derivative interface against reference values of the MATLAB programs
 #                     (reference_matlab.csv) and the BigFloat paths.
 using SaddlepointExpansions, Test, Printf, LinearAlgebra
+const quadgk = SaddlepointExpansions.quadgk
 
 reldiff(a, b) = maximum(abs.(a .- b) ./ max.(abs.(b), 1e-300))
 

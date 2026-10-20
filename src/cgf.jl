@@ -17,6 +17,13 @@ negative arguments do) or return a non-finite value; both are understood as "out
 more robust than relying on exceptions when the formula for ``K`` is finite outside its domain
 (for instance ``-\\log(1-t)`` for ``t > 1`` is a `DomainError`, but ``1/(1-t)`` is not).
 
+The keyword `taylor` supplies the Taylor polynomials in closed form instead of by automatic
+differentiation: a function `(t, N, M) -> TaylorN` returning the Taylor polynomial of degree `N`
+in `v` of ``K(t + Mv)`` (`M = nothing` for the identity; `M` may be rectangular), or `nothing`
+outside the domain, built from a coefficient table with [`taylor_from_coefficients`](@ref).
+The library uses it where closed forms are faster ([`quadratic_forms_cgf`](@ref), by the trace
+recursion), and the transformations carry it along.
+
 A `CGF` is callable: `K(t)` evaluates the function. See [`derivatives`](@ref),
 [`saddlepoint`](@ref), [`tailprob`](@ref), [`density`](@ref), and the transformations
 [`reflect`](@ref), [`marginal`](@ref), [`linear_combination`](@ref), [`sample_mean`](@ref),
@@ -28,18 +35,20 @@ K = CGF(t -> -3*log(1 - t[1]) - 2*log(1 - t[2]) - log(1 - t[1] - t[2]), 2;
         domain = t -> t[1] < 1 && t[2] < 1 && t[1] + t[2] < 1)
 ```
 """
-struct CGF{F,D}
+struct CGF{F,D,T}
     K::F
     d::Int
     domain::D
-    function CGF(K, d::Integer; domain=nothing)
+    taylor::T
+    function CGF(K, d::Integer; domain=nothing, taylor=nothing)
         d >= 1 || throw(ArgumentError("CGF: the dimension must be a positive integer"))
-        new{typeof(K),typeof(domain)}(K, Int(d), domain)
+        new{typeof(K),typeof(domain),typeof(taylor)}(K, Int(d), domain, taylor)
     end
 end
 
 (K::CGF)(t) = K.K(t)
-Base.show(io::IO, K::CGF) = print(io, "CGF of dimension ", K.d, K.domain === nothing ? "" : " with domain predicate")
+Base.show(io::IO, K::CGF) = print(io, "CGF of dimension ", K.d, K.domain === nothing ? "" : " with domain predicate",
+                                  K.taylor === nothing ? "" : " and closed-form Taylor polynomials")
 
 # Taylor algebras by (number of variables, degree), created once
 const _SPACES = Dict{Tuple{Int,Int},JetSpace}()
@@ -57,9 +66,32 @@ _indomain(K::CGF, t) = K.domain === nothing || K.domain(t)
 # Taylor polynomial of degree N in v of K(t + M v), v of dimension size(M, 2) (M = I when
 # nothing); nothing when t is outside the domain. The coefficient of v^nu is K_Y^(nu)(0)/nu! for
 # K_Y(v) = K(t + M v).
+"""
+    taylor_from_coefficients(k, N, coeffs; T=Float64) -> TaylorN
+
+A Taylor polynomial of degree `N` in `k` variables from a table of its coefficients:
+`coeffs` is a dictionary from exponent tuples ``ν`` to the coefficient of ``v^ν``
+(``K^{(ν)}/ν!``), missing entries being zero. For writing closed-form `taylor` functions of a
+[`CGF`](@ref).
+"""
+function taylor_from_coefficients(k::Integer, N::Integer, coeffs::AbstractDict; T::Type=Float64)
+    sp = _space(k, max(N, 1))
+    hp = HomogeneousPolynomial{T}[]
+    for deg in 0:max(N, 1)
+        tab = sp.coeff_table[deg+1]
+        push!(hp, HomogeneousPolynomial(sp, T[get(coeffs, Tuple(e), zero(T)) for e in tab], deg))
+    end
+    return TaylorN(sp, hp, max(N, 1))
+end
+
 function _taylor(K::CGF, t::AbstractVector, N::Integer, M=nothing)
     T = float(eltype(t))
     _indomain(K, t) || return nothing
+    if K.taylor !== nothing
+        p = K.taylor(t, N, M)
+        (p === nothing || !isfinite(constant_term(p))) && return nothing
+        return p
+    end
     k = M === nothing ? K.d : size(M, 2)
     sp = _space(k, max(N, 1))
     v = variables(T, sp)
@@ -149,9 +181,7 @@ and mixed tails: ``P(X_1 ≥ x_1, X_2 ≤ x_2) = P(X_1 ≥ x_1, -X_2 ≥ -x_2)``
 function reflect(K::CGF, signs::AbstractVector)
     length(signs) == K.d || throw(ArgumentError("reflect: signs must have length $(K.d)"))
     all(s -> s == 1 || s == -1, signs) || throw(ArgumentError("reflect: signs must be ±1"))
-    s = collect(Int, signs)
-    dom = K.domain === nothing ? nothing : (t -> K.domain(s .* t))
-    return CGF(t -> K.K(s .* t), K.d; domain=dom)
+    return linear_combination(K, Matrix(Diagonal(float.(collect(signs)))))
 end
 reflect(K::CGF) = reflect(K, fill(-1, K.d))
 
@@ -174,8 +204,11 @@ function marginal(K::CGF, idx)
     ii = collect(Int, idx)
     (allunique(ii) && all(1 .<= ii .<= K.d) && !isempty(ii)) ||
         throw(ArgumentError("marginal: idx must be distinct indices in 1:$(K.d)"))
-    dom = K.domain === nothing ? nothing : (s -> K.domain(_embed(s, ii, K.d)))
-    return CGF(s -> K.K(_embed(s, ii, K.d)), length(ii); domain=dom)
+    E = zeros(K.d, length(ii))
+    for (c, j) in enumerate(ii)
+        E[j, c] = 1.0
+    end
+    return linear_combination(K, E)
 end
 
 """
@@ -188,7 +221,9 @@ function linear_combination(K::CGF, B::AbstractMatrix)
     size(B, 1) == K.d || throw(ArgumentError("linear_combination: B must have $(K.d) rows"))
     Bm = Matrix(B)
     dom = K.domain === nothing ? nothing : (u -> K.domain(Bm*u))
-    return CGF(u -> K.K(Bm*u), size(Bm, 2); domain=dom)
+    tf = K.taylor === nothing ? nothing :
+         ((u, N, M) -> _taylor(K, Bm*u, N, M === nothing ? Bm : Bm*M))
+    return CGF(u -> K.K(Bm*u), size(Bm, 2); domain=dom, taylor=tf)
 end
 
 """
@@ -199,7 +234,10 @@ Cumulant generating function of the mean of `n` independent copies of ``X``: ``n
 function sample_mean(K::CGF, n::Real)
     n > 0 || throw(ArgumentError("sample_mean: n must be positive"))
     dom = K.domain === nothing ? nothing : (t -> K.domain(t ./ n))
-    return CGF(t -> n*K.K(t ./ n), K.d; domain=dom)
+    tf = K.taylor === nothing ? nothing :
+         ((t, N, M) -> (p = _taylor(K, t ./ n, N, (M === nothing ? Matrix(1.0I, K.d, K.d) : Matrix(M)) ./ n);
+                        p === nothing ? nothing : n*p))
+    return CGF(t -> n*K.K(t ./ n), K.d; domain=dom, taylor=tf)
 end
 
 """
@@ -210,7 +248,15 @@ Cumulant generating function of ``X + c``: ``K(t) + c't``.
 function shift(K::CGF, c::AbstractVector)
     length(c) == K.d || throw(ArgumentError("shift: c must have length $(K.d)"))
     cc = collect(c)
-    return CGF(t -> K.K(t) + sum(cc .* t), K.d; domain=K.domain)
+    function tf(t, N, M)
+        p = _taylor(K, t, N, M)
+        p === nothing && return nothing
+        Mm = M === nothing ? Matrix(1.0I, K.d, K.d) : Matrix(M)
+        T = float(promote_type(eltype(t), eltype(cc)))
+        v = variables(T, _space(size(Mm, 2), max(N, 1)))
+        return p + dot(cc, t) + sum((cc'*Mm)[i]*v[i] for i in 1:size(Mm, 2))
+    end
+    return CGF(t -> K.K(t) + sum(cc .* t), K.d; domain=K.domain, taylor=(K.taylor === nothing ? nothing : tf))
 end
 shift(K::CGF, c::Real) = shift(K, [c])
 
@@ -224,5 +270,8 @@ function Base.:+(K1::CGF, K2::CGF)
     K1.d == K2.d || throw(ArgumentError("+: the cumulant generating functions must have the same dimension"))
     dom = K1.domain === nothing ? K2.domain :
           K2.domain === nothing ? K1.domain : (t -> K1.domain(t) && K2.domain(t))
-    return CGF(t -> K1.K(t) + K2.K(t), K1.d; domain=dom)
+    tf = (K1.taylor === nothing && K2.taylor === nothing) ? nothing :
+         ((t, N, M) -> (p1 = _taylor(K1, t, N, M); p2 = _taylor(K2, t, N, M);
+                        (p1 === nothing || p2 === nothing) ? nothing : p1 + p2))
+    return CGF(t -> K1.K(t) + K2.K(t), K1.d; domain=dom, taylor=tf)
 end
