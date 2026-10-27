@@ -3,6 +3,7 @@
 # and Julia programs of the paper agree on them to 1e-10).
 
 @testset "Studentized means" begin
+    include("dickey_fuller_cgf.jl")
     @testset "noncentral t" begin
         # X ~ N(mu, 1), Y ~ chi2_nu/nu independent, n pairs: Xbar/sqrt(Ybar) = T/sqrt(n), T noncentral t
         mu, nu, n = 1.0, 3.0, 16

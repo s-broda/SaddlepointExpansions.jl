@@ -168,15 +168,6 @@ K = sample_mean(CGF(t -> μ*t[1] + t[1]^2/2 - ν/2*log(1 - 2t[2]/ν), 2; domain 
 studentized_tailprob(K, x/sqrt(n); lower=true).F     # P(T ≤ x)
 ```
 
-and the limiting Dickey-Fuller ``t``-ratio, the Studentized mean ``U/\sqrt{V}`` of two
-functionals of a near-unit-root diffusion ([`dickey_fuller_cgf`](@ref)):
-
-```julia
-K = dickey_fuller_cgf(2)                                # a constant in the regression, unit root
-studentized_tailprob(K, -2.862; lower=true).F           # the limiting size of the 5% test, ≈ 0.05
-studentized_tailprob(dickey_fuller_cgf(2; c=-5.0), -2.862; lower=true).F   # local power at c = -5
-```
-
 The density's terms of high order cancel by many orders of magnitude where ``|\hat t|`` is
 large; `studentized_density` monitors the cancellation and repeats the computation in `BigFloat`
 when it exceeds ``10^6``.
