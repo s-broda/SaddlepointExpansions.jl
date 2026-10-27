@@ -104,13 +104,20 @@ end
 
 # ----- the density: Theorem 2, in whitened coordinates with a complex factorization of psi''
 
-# a complex lower-triangular L with psi'' = L L' (the Hessian is indefinite when that < 0)
+# a complex L with psi'' = L L' from the eigen-decomposition H = V diag(lambda) V' of the 2 x 2
+# symmetric matrix, L = V diag(sqrt(lambda)) (the Hessian is indefinite when that < 0, and its
+# (1, 1) entry vanishes in symmetric cases, so a triangular factorization is not used)
 function _complex_chol(H::AbstractMatrix{T}) where {T}
     C = Complex{T}
-    a, b, c = C(H[1, 1]), C(H[2, 1]), C(H[2, 2])
-    l11 = sqrt(a); l21 = b/l11; l22 = sqrt(c - l21*l21)
-    L = [l11 zero(C); l21 l22]
-    Lit = [1/l11 -l21/(l11*l22); zero(C) 1/l22]      # inv(L)'
+    a, b, c = H[1, 1], H[2, 1], H[2, 2]
+    th = atan(2b, a - c)/2
+    cs, sn = cos(th), sin(th)
+    V = [cs -sn; sn cs]
+    l1 = a*cs*cs + 2b*sn*cs + c*sn*sn; l2 = a*sn*sn - 2b*sn*cs + c*cs*cs
+    (l1 != 0 && l2 != 0) || error("studentized_density: psi'' is singular at the saddlepoint")
+    r1, r2 = sqrt(C(l1)), sqrt(C(l2))
+    L = V*[r1 zero(C); zero(C) r2]
+    Lit = V*[1/r1 zero(C); zero(C) 1/r2]             # inv(L)' = V diag(1/sqrt(lambda))
     return L, Lit
 end
 
