@@ -14,11 +14,14 @@ wrapped in a [`CGF`](@ref). All derivatives of ``K`` that the expansions need ar
 Taylor-mode automatic differentiation (TaylorSeries.jl), directly in the whitened coordinates in
 which the terms are evaluated, so that no derivative formulas have to be written by hand. The
 main functions are [`tailprob`](@ref), [`density`](@ref), [`ratio_density`](@ref),
-[`ratio_tailprob`](@ref), [`saddlepoint`](@ref) and [`derivatives`](@ref). Ready-made cumulant
+[`ratio_tailprob`](@ref), [`saddlepoint`](@ref) and [`derivatives`](@ref), and, for a
+Studentized mean ``X/\\sqrt{Y}`` (Bao, Broda and Kan, "Inversion formulas and saddlepoint
+expansions for Studentized means"), [`studentized_density`](@ref), [`studentized_tailprob`](@ref)
+and [`studentized_quantile`](@ref). Ready-made cumulant
 generating functions for common models are in the library ([`normal_cgf`](@ref),
 [`gamma_cgf`](@ref), [`ncx2_cgf`](@ref), [`quadratic_forms_cgf`](@ref),
 [`wishart_diag_cgf`](@ref), [`exponential_sums_cgf`](@ref), [`common_component_cgf`](@ref),
-[`uniform_cgf`](@ref)),
+[`uniform_cgf`](@ref), [`dickey_fuller_cgf`](@ref)),
 and cumulant generating functions can be transformed ([`reflect`](@ref), [`marginal`](@ref),
 [`linear_combination`](@ref), [`sample_mean`](@ref)).
 
@@ -32,14 +35,17 @@ module SaddlepointExpansions
 using LinearAlgebra
 using SpecialFunctions: erfc, erfcx, erfcinv, loggamma, gamma_inc, beta_inc
 using QuadGK: quadgk
-using TaylorSeries: TaylorSeries, JetSpace, TaylorN, HomogeneousPolynomial, variables, getcoeff, constant_term
+using TaylorSeries: TaylorSeries, JetSpace, TaylorN, Taylor1, HomogeneousPolynomial, variables, getcoeff,
+                    constant_term, evaluate, differentiate
 
 # cumulant generating functions and the high-level interface
 export CGF, derivatives, saddlepoint, tailprob, density, ratio_density, ratio_tailprob,
-       reflect, marginal, linear_combination, sample_mean, shift, taylor_from_coefficients
+       reflect, marginal, linear_combination, sample_mean, shift, taylor_from_coefficients,
+       studentized_saddlepoint, studentized_locus, studentized_density, studentized_tailprob,
+       studentized_quantile
 # library of cumulant generating functions
 export normal_cgf, gamma_cgf, ncx2_cgf, quadratic_forms_cgf, wishart_diag_cgf,
-       exponential_sums_cgf, common_component_cgf, uniform_cgf, sinhc, sincu
+       exponential_sums_cgf, common_component_cgf, uniform_cgf, sinhc, sincu, dickey_fuller_cgf
 # derivative interface (Kfun(nu, t)) and the engine
 export spa_uni, spa_ratio_pdf, spa_bi, spa_bi_at, spa_orthant2, spa_mv, spa_tri, spa_mv_at,
        spa_orthant, spa_saddle, qf_Kmulti, orthant2, orthant3,
@@ -61,7 +67,9 @@ include("multivariate.jl")
 include("kfuns.jl")
 include("cgf.jl")
 include("ratios.jl")
+include("studentized.jl")
 include("api.jl")
+include("df_series.jl")
 include("cgfs.jl")
 
 end

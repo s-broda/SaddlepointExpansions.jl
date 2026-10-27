@@ -13,6 +13,7 @@ by Taylor-mode differentiation and evaluated in any precision.
 | [`wishart_diag_cgf`](@ref)`(V, n)` | the diagonal of ``W \sim W_d(n, V)`` |
 | [`common_component_cgf`](@ref)`(m, lam)` | ``Q_j = X_j + X_0`` with independent noncentral chi-squared ``X_i`` |
 | [`uniform_cgf`](@ref)`(a, b)` | uniform on ``[a, b]`` |
+| [`dickey_fuller_cgf`](@ref)`(model; c)` | ``(∫\tilde y\,dy, ∫\tilde y^2)`` for the near-unit-root diffusion ``dy = cy\,dt + dW``, whose Studentized mean is the limiting Dickey-Fuller ``t``-ratio |
 
 The examples of the paper are: `exponential_sums_cgf([1 0; 1 1; 0 1]; n=10, shift=[-2, -2])`
 (Wang 1990, Table 1), `exponential_sums_cgf([1 0; 1 1; 0 1]; n)` (Kolassa and Li 2010, Tables 3 to

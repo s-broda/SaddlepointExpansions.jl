@@ -5,7 +5,9 @@
 #                     values;
 # paper_tables.jl:    a selection of rows of the tables of the paper, recomputed from the CGF;
 # reference_matlab.jl: the derivative interface against reference values of the MATLAB programs
-#                     (reference_matlab.csv) and the BigFloat paths.
+#                     (reference_matlab.csv) and the BigFloat paths;
+# studentized.jl:     Studentized means (noncentral t against exact values, the Dickey-Fuller
+#                     t-ratio against the reference values of the paper).
 using SaddlepointExpansions, Test, Printf, LinearAlgebra
 const quadgk = SaddlepointExpansions.quadgk
 
@@ -15,4 +17,5 @@ reldiff(a, b) = maximum(abs.(a .- b) ./ max.(abs.(b), 1e-300))
     include("cgf_interface.jl")
     include("paper_tables.jl")
     include("reference_matlab.jl")
+    include("studentized.jl")
 end

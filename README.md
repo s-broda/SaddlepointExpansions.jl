@@ -10,7 +10,10 @@ The package implements the expansions of Broda and Kan, *Uniform saddlepoint exp
 multivariate tail probabilities*: the orthant probability `P(X ≥ x)` of a random vector in any
 dimension (first-order term: Kolassa 2003), its density, and the density and distribution
 function of a ratio, with the univariate expansions of Daniels and of Hauschildt and Robinson as
-the one-dimensional case. The expansion of order `M` has relative error `O(n^-M)`, uniformly for
+the one-dimensional case; and those of Bao, Broda and Kan, *Inversion formulas and saddlepoint
+expansions for Studentized means*, for the density and distribution function of ``X/\sqrt{Y}``
+(`studentized_density`, `studentized_tailprob`, `studentized_quantile`), with the limiting
+Dickey–Fuller ``t``-ratio in the library. The expansion of order `M` has relative error `O(n^-M)`, uniformly for
 saddlepoints in the closed positive orthant; saddlepoints with negative components are handled
 by inclusion-exclusion.
 
@@ -74,6 +77,10 @@ from the cumulant generating function alone (about two minutes).
 If you use this package, please cite the paper:
 
 > Broda, S. A. and Kan, R. Uniform saddlepoint expansions for multivariate tail probabilities.
+
+and, for the Studentized-mean functions,
+
+> Bao, Y., Broda, S. A. and Kan, R. Inversion formulas and saddlepoint expansions for Studentized means.
 
 The replication material of the paper (MATLAB, Julia and Python programs for all its tables) is
 in a separate repository.

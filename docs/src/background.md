@@ -61,6 +61,22 @@ probability with cumulant generating function ``K_W(s) = K(s, -rs)``, and the de
 Rice expansion of ``(2\pi i)^{-1}\int e^{K_W(s)}\,\partial_2K(s, -rs)\,ds`` through the
 saddlepoint ``K_W'(\hat s) = 0``.
 
+## Studentized means
+
+For ``Q = X/\sqrt{Y}`` with ``Y > 0`` the event ``X \le q\sqrt{Y}`` is not linear, and the
+inversion formulas of Bao, Broda and Kan, *Inversion formulas and saddlepoint expansions for
+Studentized means*, are double integrals,
+``f_Q(q) = (2\pi i)^{-2}\iint e^{K(s,t)}\,2J_2(qs, t)\,dt\,ds`` and
+``P(Q > q) = (2\pi i)^{-2}\iint e^{K(s,t)}\,2J_1(qs, t)\,dt\,ds/s``, with kernels
+``J_k(b, t) = \int_0^\infty v^k e^{-bv - tv^2}dv`` whose exponent is
+``q^2s^2/(4t)`` plus Gaussian terms. The density is the amplitude expansion of the double
+integral about the saddlepoint of ``\psi(s, t) = K(s, t) + q^2s^2/(4t)``, and the distribution
+function is obtained by expanding the ``t``-integral by Laplace's method, which leaves a
+univariate integral of Hauschildt-Robinson type in ``s`` with the exponent
+``\Psi(s) = \psi(s, t(s))``, ``\psi_t(s, t(s)) = 0``, and an amplitude ``H_0(s)`` with its own
+Rice corrections. The Hessian of ``\psi`` is indefinite where ``\hat t < 0``, which is the whole
+lower tail when ``E(X) = 0``; the expansions are the same on both sides.
+
 ## Accuracy in practice
 
 In the examples of the paper (means of five to ten observations of exponential variables, pairs
@@ -73,6 +89,7 @@ of one to thirty percent, order two reduces them to ``10^{-3}`` to ``10^{-4}``, 
 ## References
 
 - Broda, S. A. and Kan, R. *Uniform saddlepoint expansions for multivariate tail probabilities.*
+- Bao, Y., Broda, S. A. and Kan, R. *Inversion formulas and saddlepoint expansions for Studentized means.*
 - Daniels, H. E. (1954). Saddlepoint approximations in statistics. *Ann. Math. Statist.* 25, 631-650.
 - Daniels, H. E. (1987). Tail probability approximations. *Int. Statist. Rev.* 55, 37-48.
 - Hauschildt, R. and Robinson, J. (1976). *Saddlepoint approximations for the probability of large deviations.* Preprint.

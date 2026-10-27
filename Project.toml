@@ -1,6 +1,6 @@
 name = "SaddlepointExpansions"
 uuid = "c72c5791-ee94-46f9-8bd0-900fdbcf9afd"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Simon A. Broda", "Raymond Kan"]
 
 [deps]

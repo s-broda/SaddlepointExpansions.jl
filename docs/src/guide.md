@@ -134,6 +134,53 @@ ratio_density(K, c).f .* (m/n)            # density of F at f
 (The univariate distributions in [`ncx2_spa`](@ref), [`ncf_spa`](@ref) and [`dncf_spa`](@ref) do
 this with closed-form derivatives.)
 
+## Studentized means
+
+For ``Q = X/\sqrt{Y}`` with ``Y > 0``, with `K` the joint cumulant generating function of
+``(X, Y)``, the expansions of Bao, Broda and Kan, *Inversion formulas and saddlepoint expansions
+for Studentized means*:
+
+```julia
+studentized_density(K, q; order=3)          # density of X/√Y at q, orders 1..3
+studentized_tailprob(K, q; order=3)         # P(X/√Y ≥ q);  lower=true for P(X/√Y ≤ q)
+studentized_quantile(K, 0.05; order=3)      # the q with P(X/√Y ≤ q) = 0.05 under the expansion
+```
+
+Unlike a ratio, ``X - q\sqrt{Y}`` is not linear in ``(X, Y)``, and the inversion is a double
+integral with a kernel in ``s`` and ``t``. The saddlepoint ``(\hat s, \hat t, \hat v)`` solves
+``K_s = q v``, ``K_t = v^2``, ``qs + 2tv = 0`` ([`studentized_saddlepoint`](@ref)); the density
+is the bivariate amplitude expansion about it, and the distribution function is a
+Hauschildt-Robinson type expansion in ``s`` after the ``t``-integral is expanded by Laplace's
+method, all Taylor coefficients being generated from the Taylor polynomial of `K` at the
+saddlepoint by Newton's method and composition on power series. `order = M` keeps the terms
+``m ≤ M - 1`` of the density and ``m ≤ 2M - 1`` of the distribution function (relative error
+``O(n^{-M})``); `info.Fp` holds every half-order. The saddlepoints for all ``q`` lie on the curve
+``sK_s + 2tK_t = 0`` ([`studentized_locus`](@ref)), which is how `studentized_quantile` searches:
+along the curve each ``\hat s`` gives its ``q`` and its distribution function directly, so that
+no saddlepoint equation is solved for a trial ``q``.
+
+The noncentral ``t`` distribution, for example, with ``X \sim N(\mu, 1)`` and
+``Y \sim \chi^2_\nu/\nu`` independent, ``n`` pairs: ``\bar X/\sqrt{\bar Y} = T/\sqrt{n}``,
+``T`` noncentral ``t`` with ``n\nu`` degrees of freedom and noncentrality ``\sqrt{n}\mu``:
+
+```julia
+K = sample_mean(CGF(t -> μ*t[1] + t[1]^2/2 - ν/2*log(1 - 2t[2]/ν), 2; domain = t -> t[2] < ν/2), n)
+studentized_tailprob(K, x/sqrt(n); lower=true).F     # P(T ≤ x)
+```
+
+and the limiting Dickey-Fuller ``t``-ratio, the Studentized mean ``U/\sqrt{V}`` of two
+functionals of a near-unit-root diffusion ([`dickey_fuller_cgf`](@ref)):
+
+```julia
+K = dickey_fuller_cgf(2)                                # a constant in the regression, unit root
+studentized_tailprob(K, -2.862; lower=true).F           # the limiting size of the 5% test, ≈ 0.05
+studentized_tailprob(dickey_fuller_cgf(2; c=-5.0), -2.862; lower=true).F   # local power at c = -5
+```
+
+The density's terms of high order cancel by many orders of magnitude where ``|\hat t|`` is
+large; `studentized_density` monitors the cancellation and repeats the computation in `BigFloat`
+when it exceeds ``10^6``.
+
 ## Derivatives and the saddlepoint
 
 [`derivatives`](@ref)`(K, t, N)` returns all derivatives ``K^{(\nu)}(t)``, ``|\nu| \le N``, as a
