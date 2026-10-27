@@ -21,6 +21,7 @@ end
 # Newton's method on the saddlepoint equations from (s, t, v), with the Jacobian from the
 # second-order Taylor polynomial of K
 function _stud_newton3(K::CGF, q::T, s::T, t::T, v::T; tol=50eps(T), maxit=60) where {T}
+    dprev = T(Inf)
     for _ in 1:maxit
         P = _taylor(K, [s, t], 2)
         P === nothing && error("outside the domain")
@@ -30,7 +31,11 @@ function _stud_newton3(K::CGF, q::T, s::T, t::T, v::T; tol=50eps(T), maxit=60) w
         A = [Kss Kst -q; Kst Ktt -2v; q 2v 2t]
         d = A \ F
         s -= d[1]; t -= d[2]; v -= d[3]
-        sum(abs, d) < tol*(1 + abs(s) + abs(t) + abs(v)) && return s, t, v
+        dn = sum(abs, d); scale = 1 + abs(s) + abs(t) + abs(v)
+        dn < tol*scale && return s, t, v
+        # stagnation at the rounding level of K (steps no longer shrinking, already tiny)
+        dn < T(1e-7)*scale && dn >= dprev/2 && return s, t, v
+        dprev = dn
     end
     error("the saddlepoint iteration did not converge at q = $(Float64(q))")
 end
@@ -85,13 +90,17 @@ function studentized_locus(K::CGF, s::Real, tguess::Real; tol=nothing, maxit=60)
     _stud_check(K, "studentized_locus")
     T = float(promote_type(typeof(s), typeof(tguess))); s = T(s); t = T(tguess)
     tol = tol === nothing ? 50eps(T) : T(tol)
+    dprev = T(Inf)
     for _ in 1:maxit
         P = _stud_jet(K, s, t, 2)
         Ks, Kt = _coef(T, P, (1, 0)), _coef(T, P, (0, 1))
         Kst, Ktt = _coef(T, P, (1, 1)), _coef(T, P, (0, 2))
         g = s*Ks + 2*t*Kt; gp = s*Kst + 2*Kt + 2*t*Ktt
         t -= g/gp
-        if abs(g/gp) < tol*(1 + abs(t))
+        dn = abs(g/gp)
+        stalled = dn < T(1e-7)*(1 + abs(t)) && dn >= dprev/2
+        dprev = dn
+        if dn < tol*(1 + abs(t)) || stalled
             P = _stud_jet(K, s, t, 2)
             Ks, Kt = _coef(T, P, (1, 0)), _coef(T, P, (0, 1))
             Kt > 0 || error("studentized_locus: K_t is not positive at the point found")
