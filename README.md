@@ -45,8 +45,10 @@ the lower-level derivative interface of the replication material of the paper (`
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/s-broda/SaddlepointExpansions.jl")
+Pkg.add("SaddlepointExpansions")
 ```
+
+The development version: `Pkg.add(url="https://github.com/s-broda/SaddlepointExpansions.jl")`.
 
 Julia 1.10 or later.
 

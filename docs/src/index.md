@@ -27,8 +27,10 @@ The repository is private at the moment; install it from its URL:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/s-broda/SaddlepointExpansions.jl")
+Pkg.add("SaddlepointExpansions")
 ```
+
+The development version: `Pkg.add(url="https://github.com/s-broda/SaddlepointExpansions.jl")`.
 
 ## A first example
 
