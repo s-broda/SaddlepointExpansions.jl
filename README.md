@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/s-broda/SaddlepointExpansions.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/s-broda/SaddlepointExpansions.jl/actions/workflows/CI.yml)
 [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://s-broda.github.io/SaddlepointExpansions.jl/dev/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23927450.svg)](https://doi.org/10.5281/zenodo.23927450)
 
 Saddlepoint expansions of any order for tail probabilities and densities of random vectors,
 from the cumulant generating function alone.
