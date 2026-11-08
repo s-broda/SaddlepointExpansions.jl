@@ -2,7 +2,8 @@
 # counterparts (SaddlepointExpansions-matlab/tests/test_spx.m, saddlepoint-expansions/tests).
 # Writes reference_values.csv (columns case, quantity, order, value) next to this file; copy it to
 # the other packages. The first part is the case list of R. Kan's julia_reference.jl, kept as it
-# is so that the MATLAB tests keep working; the second part adds the cases of the Python tests.
+# is so that the MATLAB tests keep working; the second part adds the cases of the Python tests,
+# the third the conditional expansions, lattice sums, quantiles and normalized densities.
 #   julia --project=. test/reference_values.jl          (from the package folder)
 using SaddlepointExpansions, LinearAlgebra, Printf
 
@@ -171,6 +172,64 @@ add("ratio2", "F", ratio_tailprob(Kg4, [0.7, 0.9]; order=5).F)
 Kg3 = CGF(t -> -3log(1 - t[1]) - 4log(1 - t[2]) - 5log(1 - t[3]), 3; domain=t -> all(t .< 1))
 add("ratio2", "f_common", ratio_density(Kg3, [0.5, 0.8]; order=4).f)
 add("ratio2", "f_qf_general", ratio_density(Kq, 1.2; order=4, general=true).f)
+
+# ===== conditional expansions (Broda and Kan, "Conditional saddlepoint expansions of arbitrary
+# order"), lattice sums, quantiles and normalized densities (version 0.3.0) =====
+# the gamma sum given its total: d = 2 with a positive and a negative saddlepoint component, d = 3
+Kb2 = CGF(t -> -16log(1 - t[1] - t[2]) - 16log(1 - t[2]), 2; domain=t -> t[1] + t[2] < 1 && t[2] < 1)
+for (name, x) in (("pos", [19.0, 32.0]), ("neg", [12.0, 32.0]))
+    r = conditional_tailprob(Kb2, x, 1; order=5)
+    add("cond_beta2", "F_" * name, r.F); add("cond_beta2", "Fp_" * name, r.info.Fp)
+    add("cond_beta2", "tau_" * name, r.tau); add("cond_beta2", "taut_" * name, r.taut)
+    add("cond_beta2", "f_" * name, conditional_density(Kb2, x, 1; order=5).f)
+end
+add("cond_beta2", "Flow_pos", conditional_tailprob(Kb2, [19.0, 32.0], 1; order=5, lower=true).F)
+Kb3 = CGF(t -> -16log(1 - t[1] - t[2]) - 32log(1 - t[2] - t[3]) - 8log(1 - t[2]), 3;
+          domain=t -> t[1] + t[2] < 1 && t[2] + t[3] < 1 && t[2] < 1)
+add("cond_beta3", "F", conditional_tailprob(Kb3, [18.0, 56.0, 32.0], 1; order=4).F)
+add("cond_beta3", "f", conditional_density(Kb3, [18.0, 56.0, 32.0], 1; order=4).f)
+# a quadratic form given another
+Kq2 = common_component_cgf([15.0, 20.0, 10.0], [5.0, 10.0, 8.0])
+add("cond_bqf", "F", conditional_tailprob(Kq2, [55.0, 50.0], 1; order=5).F)
+add("cond_bqf", "f", conditional_density(Kq2, [55.0, 50.0], 1; order=5).f)
+# two tail components given the total (Dirichlet), a mixed-sign saddlepoint (inclusion-exclusion
+# with the marginal), and a mixed corner
+Kdir = CGF(t -> -5log(1 - t[1] - t[3]) - 7.5log(1 - t[2] - t[3]) - 10log(1 - t[3]), 3;
+           domain=t -> t[1] + t[3] < 1 && t[2] + t[3] < 1 && t[3] < 1)
+add("cond_dir", "F", conditional_tailprob(Kdir, [0.35*22.5, 0.45*22.5, 22.5], [1, 2]; order=3).F)
+add("cond_dir", "F_mixed", conditional_tailprob(Kdir, [0.30*22.5, 0.25*22.5, 22.5], [1, 2]; order=3).F)
+add("cond_dir", "F_signs", conditional_tailprob(Kdir, [0.30*22.5, 0.25*22.5, 22.5], [1, 2]; order=3, signs=[1, -1]).F)
+add("cond_dir", "f", conditional_density(Kdir, [0.35*22.5, 0.45*22.5, 22.5], [1, 2]; order=3).f)
+# logistic regression, lattice, both expansions of the amplitude
+Xl = [ones(Int, 30) mod.(0:29, 5) mod.(0:29, 3)]
+Klg = logistic_regression_cgf(Xl)
+for (name, sh) in (("saddle", :saddle), ("origin", :origin))
+    add("cond_logit", "F_" * name, conditional_tailprob(Klg, [15.0, 37.0, 15.0], 2; order=4, lattice=true, sinh=sh).F)
+end
+add("cond_logit", "F_neg", conditional_tailprob(Klg, [10.0, 14.0, 12.0], 2; order=4, lattice=true).F)
+add("cond_logit", "pmf", conditional_density(Klg, [15.0, 37.0, 15.0], 2; order=4, lattice=true).f)
+# a sum of two ratios of quadratic forms (d = 3)
+lamr = [[-0.6, -0.1, 0.3, 0.7, 0.9], [-0.8, -0.2, 0.0, 0.4, 0.5, 0.8]]
+Ksr = CGF(t -> -sum(sum(log(1 - 2*(t[1]*l + t[i+1])) for l in lamr[i]) for i in 1:2)/2, 3)
+add("cond_ratios", "F", conditional_tailprob(Ksr, [0.5, 1.0, 1.0], 1; order=4).F)
+# lattice sums without conditioning
+add("lattice", "pois_F", tailprob(poisson_cgf(5.0), 11; order=4, lattice=true).F)
+add("lattice", "pois_Fneg", tailprob(poisson_cgf(5.0), 3; order=4, lattice=true).F)
+add("lattice", "pois_f", density(poisson_cgf(5.0), 11; order=4, lattice=true).f)
+add("lattice", "binom_F", tailprob(binomial_cgf(40, 0.3), 18; order=4, lattice=true).F)
+add("lattice", "binom_Flow", tailprob(binomial_cgf(40, 0.3), 9; order=4, lattice=true, lower=true).F)
+add("lattice", "negbin_F", tailprob(negative_binomial_cgf(5.0, 0.4), 15; order=4, lattice=true).F)
+Kbp = CGF(t -> 2*(exp(t[1]) - 1) + 2*(exp(t[2]) - 1) + (exp(t[1] + t[2]) - 1), 2)
+add("lattice", "bipois_F", tailprob(Kbp, [6, 2]; order=4, lattice=true).F)
+add("lattice", "bipois_f", density(Kbp, [6, 2]; order=4, lattice=true).f)
+# quantiles and normalized densities
+let q = quantile(gamma_cgf(3.0), 0.05; order=4); add1("quantile", "gamma_q", q.q); add1("quantile", "gamma_tau", q.tau); end
+add1("quantile", "gamma_q_upper", quantile(gamma_cgf(3.0), 1e-6; order=4, lower=false).q)
+KFq = CGF(t -> ncx2_cgf(4, 3)([t[1]]) + ncx2_cgf(12)([t[2]]), 2; domain=t -> t[1] < 0.5 && t[2] < 0.5)
+let q = ratio_quantile(KFq, 0.99; order=4); add1("quantile", "ncf_r", q.r); add1("quantile", "ncf_shat", q.shat); end
+add("normalize", "gamma_mass", density(gamma_cgf(3.0), 2.0; order=4, normalize=true).info.mass)
+add("normalize", "ncx2_mass", density(ncx2_cgf(4, 3), 7.0; order=3, normalize=true).info.mass)
+add("normalize", "ratio_mass", ratio_density(KFq, 1.0; order=3, normalize=true).info.mass)
 
 open(joinpath(@__DIR__, "reference_values.csv"), "w") do io
     println(io, "case,quantity,order,value")
