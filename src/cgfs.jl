@@ -301,3 +301,61 @@ function uniform_cgf(a::Real=-1, b::Real=1)
     h = (b - a)/2; m = (a + b)/2
     return CGF(t -> log(sinhc(h*t[1])) + m*t[1], 1)
 end
+
+# log(1 + e^z) for numbers and Taylor polynomials, without overflow for large constant terms
+_log1pexp(z) = constant_term(z) > 0 ? z + log(1 + exp(-z)) : log(1 + exp(z))
+
+"""
+    logistic_regression_cgf(X; beta=nothing) -> CGF
+
+The sufficient statistic ``S = \\sum_i y_ix_i`` of a logistic regression, ``y_i`` independent
+Bernoulli with ``\\log\\{p_i/(1-p_i)\\} = x_i'β``, ``x_i'`` the rows of the ``n × d`` design matrix
+`X`: ``K(t) = \\sum_i [\\log\\{1 + e^{x_i'(β + t)}\\} - \\log(1 + e^{x_i'β})]``, at `beta` (default
+zero). With integer covariates ``S`` is a lattice variable (`lattice = true`); the conditional
+distribution of a component given the others, the basis of exact conditional inference, is
+[`conditional_tailprob`](@ref) and [`conditional_density`](@ref) with `lattice = true`, and it does
+not depend on the coefficients of the conditioning components.
+"""
+function logistic_regression_cgf(X::AbstractMatrix; beta=nothing)
+    Xm = Matrix{Float64}(X); n, d = size(Xm)
+    b = beta === nothing ? zeros(d) : collect(Float64, beta)
+    length(b) == d || throw(ArgumentError("logistic_regression_cgf: beta must have length $d"))
+    eta = Xm*b
+    c0 = sum(_log1pexp, eta)
+    return CGF(t -> sum(_log1pexp(eta[i] + sum(Xm[i, k]*t[k] for k in 1:d)) for i in 1:n) - c0, d)
+end
+
+"""
+    poisson_cgf(lam) -> CGF
+
+Poisson with mean `lam`: ``K(t) = λ(e^t - 1)``. A lattice variable: use `lattice = true` in
+[`tailprob`](@ref) and [`density`](@ref) for ``P(S ≥ k)`` and ``P(S = k)``.
+"""
+function poisson_cgf(lam::Real)
+    lam > 0 || throw(ArgumentError("poisson_cgf: lam must be positive"))
+    return CGF(t -> lam*(exp(t[1]) - 1), 1)
+end
+
+"""
+    binomial_cgf(m, p) -> CGF
+
+Binomial with `m` trials and success probability `p`: ``K(t) = m\\log(1 - p + pe^t)``. A lattice
+variable (`lattice = true`).
+"""
+function binomial_cgf(m::Real, p::Real)
+    (m > 0 && 0 < p < 1) || throw(ArgumentError("binomial_cgf: m must be positive and 0 < p < 1"))
+    return CGF(t -> m*log(1 - p + p*exp(t[1])), 1)
+end
+
+"""
+    negative_binomial_cgf(r, p) -> CGF
+
+Negative binomial, the number of failures before the `r`-th success in Bernoulli trials with
+success probability `p` (mean ``r(1-p)/p``): ``K(t) = r\\log p - r\\log\\{1 - (1-p)e^t\\}``,
+``t < -\\log(1-p)``; `r` need not be an integer. A lattice variable (`lattice = true`).
+"""
+function negative_binomial_cgf(r::Real, p::Real)
+    (r > 0 && 0 < p < 1) || throw(ArgumentError("negative_binomial_cgf: r must be positive and 0 < p < 1"))
+    q = 1 - p
+    return CGF(t -> r*log(p) - r*log(1 - q*exp(t[1])), 1; domain=t -> q*exp(t[1]) < 1)
+end

@@ -17,23 +17,31 @@ main functions are [`tailprob`](@ref), [`density`](@ref), [`ratio_density`](@ref
 [`ratio_tailprob`](@ref), [`saddlepoint`](@ref) and [`derivatives`](@ref), and, for a
 Studentized mean ``X/\\sqrt{Y}`` (Bao, Broda and Kan, "Inversion formulas and saddlepoint
 expansions for Studentized means"), [`studentized_density`](@ref), [`studentized_tailprob`](@ref)
-and [`studentized_quantile`](@ref). Ready-made cumulant
+and [`studentized_quantile`](@ref); for conditional distributions, Broda and Kan, "Conditional
+saddlepoint expansions of arbitrary order": the conditional distribution function
+``P(X_A ≥ x_A ∣ X_B = x_B)`` and the conditional density, of every order, for continuous and lattice
+variables, evaluated in the canonical coordinates of that paper ([`conditional_tailprob`](@ref),
+[`conditional_density`](@ref)), with the lattice expansions without conditioning as the option
+`lattice = true` of [`tailprob`](@ref) and [`density`](@ref); quantiles of the expansions by
+Newton's method in saddlepoint space ([`quantile`](@ref), [`ratio_quantile`](@ref)); and
+normalized densities (`normalize = true`). Ready-made cumulant
 generating functions for common models are in the library ([`normal_cgf`](@ref),
 [`gamma_cgf`](@ref), [`ncx2_cgf`](@ref), [`quadratic_forms_cgf`](@ref),
 [`wishart_diag_cgf`](@ref), [`exponential_sums_cgf`](@ref), [`common_component_cgf`](@ref),
-[`uniform_cgf`](@ref)),
+[`uniform_cgf`](@ref), and the lattice [`poisson_cgf`](@ref), [`binomial_cgf`](@ref),
+[`negative_binomial_cgf`](@ref), [`logistic_regression_cgf`](@ref)),
 and cumulant generating functions can be transformed ([`reflect`](@ref), [`marginal`](@ref),
 [`linear_combination`](@ref), [`sample_mean`](@ref)).
 
 Everything is generic in the floating-point type: pass `BigFloat` arguments inside
 `setprecision` for variable precision. The lower-level functions `spa_uni`, `spa_bi`, `spa_mv`,
-`spa_orthant`, ... take the derivatives of ``K`` from a user-supplied function `Kfun(nu, t)`
+`spa_orthant`, `spa_cond`, ... take the derivatives of ``K`` from a user-supplied function `Kfun(nu, t)`
 instead, for cumulant generating functions whose derivatives are available in closed form.
 """
 module SaddlepointExpansions
 
 using LinearAlgebra
-using SpecialFunctions: erfc, erfcx, erfcinv, loggamma, gamma_inc, beta_inc
+using SpecialFunctions: erfc, erfcx, erfcinv, loggamma, gamma_inc, beta_inc, beta_inc_inv
 using QuadGK: quadgk
 using TaylorSeries: TaylorSeries, JetSpace, TaylorN, Taylor1, HomogeneousPolynomial, variables, getcoeff,
                     constant_term, evaluate, differentiate
@@ -42,13 +50,14 @@ using TaylorSeries: TaylorSeries, JetSpace, TaylorN, Taylor1, HomogeneousPolynom
 export CGF, derivatives, saddlepoint, tailprob, density, ratio_density, ratio_tailprob,
        reflect, marginal, linear_combination, sample_mean, shift, taylor_from_coefficients,
        studentized_saddlepoint, studentized_locus, studentized_density, studentized_tailprob,
-       studentized_quantile
+       studentized_quantile, conditional_tailprob, conditional_density, quantile, ratio_quantile
 # library of cumulant generating functions
 export normal_cgf, gamma_cgf, ncx2_cgf, quadratic_forms_cgf, wishart_diag_cgf,
-       exponential_sums_cgf, common_component_cgf, uniform_cgf, sinhc, sincu
+       exponential_sums_cgf, common_component_cgf, uniform_cgf, sinhc, sincu,
+       logistic_regression_cgf, poisson_cgf, binomial_cgf, negative_binomial_cgf
 # derivative interface (Kfun(nu, t)) and the engine
 export spa_uni, spa_ratio_pdf, spa_bi, spa_bi_at, spa_orthant2, spa_mv, spa_tri, spa_mv_at,
-       spa_orthant, spa_saddle, qf_Kmulti, orthant2, orthant3,
+       spa_orthant, spa_saddle, spa_cond, qf_Kmulti, orthant2, orthant3,
        ncx2_Kder, bqfcc_Kfun, mvcc_Kfun, lin_exp_Kfun, wishdiag_kfun
 # ready-made univariate distributions and exact values
 export ncx2_spa, ncf_spa, dncf_spa, dncf_saddle,
@@ -69,6 +78,8 @@ include("cgf.jl")
 include("ratios.jl")
 include("studentized.jl")
 include("api.jl")
+include("conditional.jl")
+include("quantiles.jl")
 include("cgfs.jl")
 
 end

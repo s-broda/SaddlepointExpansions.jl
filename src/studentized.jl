@@ -133,7 +133,8 @@ end
 _cpow(x, r) = exp(r*log(x))
 
 """
-    studentized_density(K::CGF, q; order=3, saddle=nothing) -> (; f, saddle, status, info)
+    studentized_density(K::CGF, q; order=3, saddle=nothing, refine=true, normalize=false)
+        -> (; f, saddle, status, info)
 
 Saddlepoint expansions of orders `1:order` of the density at `q` of ``Q = X/\\sqrt{Y}``, ``Y > 0``,
 from the joint cumulant generating function `K` of ``(X, Y)`` (Theorem 2 of Bao, Broda and Kan):
@@ -153,8 +154,27 @@ many orders of magnitude when ``|\\hat t|`` is large; `info.kappa` is the cancel
 and with `refine = true` (the default) a `Float64` computation whose indicator exceeds ``10^6``
 is repeated in `BigFloat` with a precision chosen from the indicator (`info.refined` is then the
 number of bits). `saddle` may supply the saddlepoint (`(; s, t, v)`).
+
+`normalize = true` divides the expansion of every order by its total mass, returned in
+`info.mass` (pass it back as `normalize` to reuse it). The integral over ``q`` is computed in
+saddlepoint space, over ``\\hat s`` along the locus ``sK_s + 2tK_t = 0``
+([`studentized_locus`](@ref)), with ``dq = (dq/d\\hat s)\\,d\\hat s``, by adaptive Gauss-Kronrod
+quadrature on the two sides of ``\\hat s = 0`` (where ``\\hat t = 0``), the tails truncated where
+the leading term has fallen by ``e^{-50}``; each node gives ``\\hat t`` by the one-dimensional
+Newton iteration of the locus, so that no saddlepoint equation in ``q`` is solved. The expansions
+at the nodes are refined in `BigFloat` where they cancel, as with `refine = true`, which is what
+makes the masses of the higher orders meaningful in the tails, where ``|\\hat t|`` is large.
 """
-function studentized_density(K::CGF, q::Real; order::Integer=3, saddle=nothing, refine::Bool=true)
+function studentized_density(K::CGF, q::Real; order::Integer=3, saddle=nothing, refine::Bool=true,
+                             normalize=false)
+    if normalize !== false
+        T = float(typeof(q))
+        _stud_check(K, "studentized_density")
+        mass = normalize === true ? _stud_mass(K, order, T) : T.(collect(normalize))
+        length(mass) >= order || throw(ArgumentError("studentized_density: normalize must be true or a vector of $order masses"))
+        r = studentized_density(K, q; order, saddle, refine)
+        return (; f=r.f ./ mass[1:order], saddle=r.saddle, status=r.status, info=(; r.info..., mass=mass[1:order]))
+    end
     _stud_check(K, "studentized_density"); _checkorder("studentized_density", order)
     T = float(typeof(q)); q = T(q); M = order
     r = _studentized_density(K, q, M, saddle)
