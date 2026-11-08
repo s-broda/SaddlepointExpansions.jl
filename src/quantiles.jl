@@ -59,8 +59,8 @@ the distribution function is within `tol` ``\\min(p, 1-p)`` of `p`; `tau` is the
 and `F` the value of the expansion there. For continuous variables (the expansion of a lattice
 variable is a step function of ``k``). The search runs in the floating-point type of `p`.
 
-`quantile` is not the function of the standard library Statistics: with both packages loaded
-write `SaddlepointExpansions.quantile`.
+This is a method of `Statistics.quantile` (the standard library), which the package exports, so
+that it works alongside `using Statistics`.
 """
 function quantile(K::CGF, p::Real; order::Integer=3, lower::Bool=true, tol::Real=1e-12)
     K.d == 1 || throw(ArgumentError("quantile: K must be univariate (see ratio_quantile and studentized_quantile)"))

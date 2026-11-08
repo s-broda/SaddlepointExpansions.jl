@@ -271,8 +271,8 @@ quantile(gamma_cgf(3.0), 0.05; order=4).q            # the 5% point of the expan
 quantile(gamma_cgf(3.0), 1e-6; order=4, lower=false).q
 ```
 
-`quantile` is not the function of the standard library Statistics; when both are loaded, write
-`SaddlepointExpansions.quantile`.
+`quantile(K, p)` is a method of the standard library's `Statistics.quantile`, so that it works
+alongside `using Statistics`.
 
 ## Normalized densities
 

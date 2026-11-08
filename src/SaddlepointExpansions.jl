@@ -43,6 +43,8 @@ module SaddlepointExpansions
 using LinearAlgebra
 using SpecialFunctions: erfc, erfcx, erfcinv, loggamma, gamma_inc, beta_inc, beta_inc_inv
 using QuadGK: quadgk
+import Statistics
+import Statistics: quantile                 # quantile(K::CGF, p) is a method of Statistics.quantile
 using TaylorSeries: TaylorSeries, JetSpace, TaylorN, Taylor1, HomogeneousPolynomial, variables, getcoeff,
                     constant_term, evaluate, differentiate
 

@@ -6,15 +6,12 @@
 #
 # The relative errors are printed with two significant digits; a computed value reproduces a
 # printed one when it rounds to it, and values below 1e-10, at the rounding level of the exact
-# values, are compared to 2e-12 absolute. The cells listed in `fix1`, `fix2` and `fix3` are not
-# reproduced: the value printed in the paper carries a rounding or truncation error of the MATLAB
-# program that produced the table, and the value given here is that of the expansion, the same in
-# double precision and in BigFloat (256 bits). In the tables of the gamma sum and of the quadratic
-# forms these are the polynomial
-# substitution into the canonical coordinates (rounding, d = 3 and N = 4, and N = 4, q = 0.99 of
-# the first block), and the truncation of the orthant integrals at u v + v^2/2 = 40, which leaves
-# out the growth of the Hermite polynomials of high degree (order 5 at the medians, where u ≈ 0);
-# in the table of the sums of ratios, Skovgaard's formula at the median, where 1/w - 1/z cancels.
+# values, are compared to 2e-12 absolute. The rows are those of the tables regenerated with the
+# corrected program spa_cond.m (canonical coordinates from closed-form derivatives in cond_beta.m,
+# the truncation of the orthant integrals with the degree of the Hermite polynomials, Kolassa's
+# truncation of the lattice amplitude about the origin, relative errors of lattice tails to
+# min(P, 1 - P)). The one cell listed in `fix3` is Skovgaard's formula at the median, where
+# 1/w - 1/z cancels in double precision: the value given is that of the formula in BigFloat.
 
 const CROWS = let rows = Dict{Int,Vector{Tuple{Int,Vector{String}}}}()
     for ln in eachline(joinpath(@__DIR__, "conditional_rows.txt"))
@@ -48,9 +45,6 @@ const beta_inc_inv = SaddlepointExpansions.beta_inc_inv
 
 @testset "Conditional expansions" begin
     @testset "gamma sum given its total (cond_beta_rows.tex)" begin
-        fix1 = Dict(3 => Dict(5 => -6.7e-16), 5 => Dict(5 => -7.5e-7, 10 => 1.4e-6), 17 => Dict(4 => 8.3e-7),
-                    18 => Dict(5 => 5.1e-6), 23 => Dict(5 => 4.4e-9), 34 => Dict(5 => -5.6e-5, 10 => 2.1e-5),
-                    35 => Dict(4 => 5.3e-5, 5 => -7.2e-5, 9 => 5.0e-5, 10 => 2.1e-5), 40 => Dict(5 => -2.6e-9))
         nok = 0; ncell = 0
         for (i, (block, cells)) in enumerate(CROWS[1])
             N = parse(Int, cells[1]); q = parse(Float64, cells[2])
@@ -70,7 +64,7 @@ const beta_inc_inv = SaddlepointExpansions.beta_inc_inv
             f = conditional_density(K, x, 1; order=5)
             @test r.status == "ok" && f.status == "ok"
             @test printed(Pu, pval(cells[3])) && round(r.tau[1]; digits=2) == pval(cells[4]) + 0.0
-            ok = rowcheck(vcat((r.F .- Pu) ./ min(Pu, Pl), f.f ./ fex .- 1), cells[5:14], get(fix1, i, Dict()))
+            ok = rowcheck(vcat((r.F .- Pu) ./ min(Pu, Pl), f.f ./ fex .- 1), cells[5:14], Dict())
             nok += count(ok); ncell += length(ok)
             @test all(ok)
         end
@@ -84,7 +78,6 @@ const beta_inc_inv = SaddlepointExpansions.beta_inc_inv
     end
 
     @testset "a quadratic form given another (cond_bqf_rows.tex)" begin
-        fix2 = Dict(3 => Dict(5 => 3.4e-8))
         function illinois(f, a, b)
             fa, fb = f(a), f(b); side = 0
             for _ in 1:200
@@ -116,7 +109,7 @@ const beta_inc_inv = SaddlepointExpansions.beta_inc_inv
             r = conditional_tailprob(K, [x1, x2], 1; order=5)
             f = conditional_density(K, [x1, x2], 1; order=5)
             @test printed(Pu, pval(cells[3])) && round(r.tau[1]; digits=2) == pval(cells[4]) + 0.0
-            ok = rowcheck(vcat((r.F .- Pu) ./ min(Pu, Pl), f.f ./ fex .- 1), cells[5:14], get(fix2, i, Dict()))
+            ok = rowcheck(vcat((r.F .- Pu) ./ min(Pu, Pl), f.f ./ fex .- 1), cells[5:14], Dict())
             nok += count(ok); ncell += length(ok)
             @test all(ok)
         end
@@ -224,7 +217,6 @@ const beta_inc_inv = SaddlepointExpansions.beta_inc_inv
             pm .= (pm .+ circshift(pm, Tuple(X[j, :]))) ./ 2
         end
         K = logistic_regression_cgf(X)
-        Kf = SaddlepointExpansions._kfun(K, 9); Kw = SaddlepointExpansions._kwhite(K, 9)
         nok = 0; ncell = 0; i = 0
         for (k0, k2) in ((15, 15), (10, 12), (12, 9))
             q = pm[k0+1, :, k2+1]; q ./= sum(q)
@@ -235,17 +227,14 @@ const beta_inc_inv = SaddlepointExpansions.beta_inc_inv
                 x = Float64[k0, k1, k2]
                 r = conditional_tailprob(K, x, 2; order=4, lattice=true)
                 f = conditional_density(K, x, 2; order=4, lattice=true)
-                # the last column: the MATLAB program keeps the expansion of s/(2 sinh(s/2)) about
-                # the origin to s^(2 order - 2) = s^6 at every order, so its "second-order" value has
-                # the polynomial of degree 6; Kolassa's truncation (sinh = :origin) keeps s^2
-                r6 = SaddlepointExpansions._spa_cond(Kf, Kw, x, [2], 4; density=false, lattice=true, sinh=:origin, sinhdeg=6)
+                # the last column: the amplitude expanded about the origin, kept to s^2 at order 2
                 ro = conditional_tailprob(K, x, 2; order=4, lattice=true, sinh=:origin)
                 @test parse(Int, cells[1]) == k1 && printed(Pu, pval(cells[2])) && round(r.tau[2]; digits=2) == pval(cells[3]) + 0.0
                 @test r.status == "ok"
-                ok = rowcheck(vcat((r.F .- Pu) ./ min(Pu, Pl), f.f ./ pk .- 1, (r6.P[2] - Pu)/min(Pu, Pl)), cells[4:12], Dict())
+                ok = rowcheck(vcat((r.F .- Pu) ./ min(Pu, 1 - Pu), f.f ./ pk .- 1, (ro.F[2] - Pu)/min(Pu, 1 - Pu)), cells[4:12], Dict())
                 nok += count(ok); ncell += length(ok)
                 @test all(ok)
-                @test abs(ro.F[2] - Pu)/min(Pu, Pl) < 4e-3 && abs(ro.F[2]/r.F[2] - 1) < 1e-3
+                @test abs(ro.F[2]/r.F[2] - 1) < 1e-3
                 # the lower tail P(S_1 <= k_1 - 1) is the complement, at every order
                 rl = conditional_tailprob(K, x .- [0, 1, 0], 2; order=4, lattice=true, lower=true)
                 @test maximum(abs.(rl.F .+ r.F .- 1)) < 1e-14

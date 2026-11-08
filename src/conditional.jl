@@ -393,7 +393,7 @@ end
 # LA LA' = K''_{AA.B}, with which the integrals are evaluated as in Appendix B of the first paper
 # (for one tail component a scaling, which changes nothing)
 function _cond_numer(Kfun, Kwhite, tau::Vector{T}, x::Vector{T}, A::Vector{Int}, order::Integer,
-                     logscale::T, lattice::Bool, mode::Symbol, nG::Integer, sinhdeg) where {T}
+                     logscale::T, lattice::Bool, mode::Symbol, nG::Integer) where {T}
     d = length(x); B = setdiff(1:d, A); a = length(A); b = length(B)
     p = 2order - 1; L = 3p
     K0, K2 = _cond_K02(Kfun, tau)
@@ -436,7 +436,7 @@ function _cond_numer(Kfun, Kwhite, tau::Vector{T}, x::Vector{T}, A::Vector{Int},
             if mode === :saddle && M > 1
                 ctM[M] = ctM[1]; continue
             end
-            dg = mode === :origin ? (sinhdeg === nothing ? 2M - 2 : sinhdeg) : 0
+            dg = mode === :origin ? 2M - 2 : 0
             G = [_sinhcoef(tau[A[i]], L, mode, dg) for i in 1:a]
             ctM[M] = _cond_lattice_ct(c, G, IL, A, UA, p, L)
         end
@@ -533,7 +533,7 @@ end
 # every term is the conditional probability, given the same X_B, of the components of A that
 # are kept, those in T negated, with the components of N \ T marginalized
 function _cond_tail(Kfun, Kwhite, x::Vector{T}, A::Vector{Int}, order::Integer, den, tau0,
-                    lattice::Bool, mode::Symbol, nG::Integer, sinhdeg) where {T}
+                    lattice::Bool, mode::Symbol, nG::Integer) where {T}
     d = length(x)
     xc = copy(x)
     lattice && (xc[A] .-= one(T)/2)
@@ -547,7 +547,7 @@ function _cond_tail(Kfun, Kwhite, x::Vector{T}, A::Vector{Int}, order::Integer, 
     end
     Nn = [j for j in A if tau[j] < 0]
     if isempty(Nn)
-        r = _cond_numer(Kfun, Kwhite, tau, xc, A, order, den.logf0, lattice, mode, nG, sinhdeg)
+        r = _cond_numer(Kfun, Kwhite, tau, xc, A, order, den.logf0, lattice, mode, nG)
         sj = [den.s[j÷2+1] for j in 0:2order-1]
         return (; P=r.D ./ sj, abssum=r.Dabs ./ abs.(sj), err=r.err ./ abs.(sj), tau)
     end
@@ -576,7 +576,7 @@ function _cond_tail(Kfun, Kwhite, x::Vector{T}, A::Vector{Int}, order::Integer, 
         x2 = flip .* x
         lattice && (x2[Tset] .+= 1)                              # X_j < x_j  <=>  -X_j >= -x_j + 1
         A2 = [findfirst(==(j), keep) for j in tail]
-        r = _cond_tail(Km, Kw, x2[keep], A2, order, den, (flip .* tau)[keep], lattice, mode, nG, sinhdeg)
+        r = _cond_tail(Km, Kw, x2[keep], A2, order, den, (flip .* tau)[keep], lattice, mode, nG)
         P .+= sgn .* r.P; abssum .+= r.abssum; err .+= r.err
     end
     return (; P, abssum, err, tau)
@@ -584,7 +584,7 @@ end
 
 function _spa_cond(Kfun, Kwhite, x::AbstractVector, A, order::Integer; tail::Bool=true,
                    density::Bool=true, lattice::Bool=false, sinh::Symbol=:saddle, nG::Integer=64,
-                   tau0=nothing, sinhdeg=nothing)
+                   tau0=nothing)
     order >= 1 || throw(ArgumentError("spa_cond: order must be a positive integer"))
     isempty(x) && throw(ArgumentError("spa_cond: x must be a nonempty vector"))
     all(isfinite, x) || throw(ArgumentError("spa_cond: x must be finite"))
@@ -628,7 +628,7 @@ function _spa_cond(Kfun, Kwhite, x::AbstractVector, A, order::Integer; tail::Boo
     Pp = fill(T(NaN), 2order); tau = fill(T(NaN), d)
     if tail
         t0 = density ? tauf : (tau0 === nothing ? nothing : T.(collect(tau0)))
-        r = _cond_tail(Kfun, Kwhite, x, A, order, den, t0, lattice, sinh, nG, sinhdeg)
+        r = _cond_tail(Kfun, Kwhite, x, A, order, den, t0, lattice, sinh, nG)
         Pp = r.P; tau = r.tau
         P = Pp[2:2:end]; err = r.err[2:2:end]
         kappaP = r.abssum[2:2:end] ./ abs.(P)

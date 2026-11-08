@@ -149,3 +149,9 @@
         @test abs(rs.info.mass[1] - 1) < 1e-2
     end
 end
+
+@testset "quantile extends Statistics.quantile" begin
+    @test quantile === SaddlepointExpansions.Statistics.quantile
+    @test quantile([1.0, 2.0, 3.0, 4.0], 0.5) == 2.5                 # the method for data still works
+    @test hasmethod(quantile, Tuple{CGF,Float64})
+end
