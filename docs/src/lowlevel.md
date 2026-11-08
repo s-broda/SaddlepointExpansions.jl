@@ -23,6 +23,7 @@ multi-index order `nu` (a tuple of `d` integers; `nu = (0, …, 0)` gives ``K(t)
 | [`spa_tri`](@ref)`(Kfun, x, order)` | ``d = 3`` version of `spa_mv` |
 | [`spa_mv_at`](@ref)`(Kd, tau, x, order)` | the same from the derivatives at a given saddlepoint |
 | [`spa_orthant`](@ref)`(Kfun, x, order)` | any ``d``: ``P(X \ge x)`` for any saddlepoint |
+| [`spa_cond`](@ref)`(Kfun, x, A, order)` | ``P(X_A \ge x_A \mid X_B = x_B)`` and ``f(x_A \mid x_B)``, continuous or lattice |
 | [`orthant2`](@ref), [`orthant3`](@ref) | normal orthant probabilities |
 
 Whitened evaluation: `spa_bi` and `spa_mv` accept a function `Kwhite(nu, u, T)` returning the

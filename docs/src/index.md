@@ -21,6 +21,13 @@ differentiation ([TaylorSeries.jl](https://github.com/JuliaDiff/TaylorSeries.jl)
 whitened coordinates in which the terms are evaluated, so no derivative formulas have to be
 written by hand and no finite differences are used.
 
+The conditional expansions of Broda and Kan, *Conditional saddlepoint expansions of arbitrary
+order*, for ``P(X_A \ge x_A \mid X_B = x_B)`` and the conditional density, of every order, for
+continuous and lattice variables ([`conditional_tailprob`](@ref), [`conditional_density`](@ref)),
+the lattice expansions without conditioning (`lattice = true` in `tailprob` and `density`),
+quantiles ([`quantile`](@ref), [`ratio_quantile`](@ref)) and normalized densities
+(`normalize = true`) are also included.
+
 ## Installation
 
 The repository is private at the moment; install it from its URL:

@@ -77,6 +77,35 @@ univariate integral of Hauschildt-Robinson type in ``s`` with the exponent
 Rice corrections. The Hessian of ``\psi`` is indefinite where ``\hat t < 0``, which is the whole
 lower tail when ``E(X) = 0``; the expansions are the same on both sides.
 
+## Conditional distributions
+
+The double saddlepoint approximation of Skovgaard (1987) to the distribution function of one
+component of a sample mean given the others is the conditional counterpart of the Lugannani-Rice
+formula; Kolassa (1996) showed that it is the first term of an asymptotic expansion and gave the
+second, and Barndorff-Nielsen and Cox (1979) gave the double saddlepoint approximation to the
+conditional density. Broda and Kan, *Conditional saddlepoint expansions of arbitrary order*, give
+every term of every order, for any numbers of tail and conditioning components:
+``P(X_A \ge x_A \mid X_B = x_B)`` is the ratio of the orthant-probability integral with the poles in
+the components of ``A`` only, whose expansion has the integrals ``I_A(\nu)`` with the indices
+``-1`` on ``A`` and ``0`` on ``B``, to the density expansion of ``X_B`` at its own saddlepoint; the
+expansion is of Hauschildt-Robinson type, has no singular terms, and its relative error after the
+terms of order ``n^{-p/2}`` is ``O(n^{-(p+1)/2})`` uniformly over compact sets of saddlepoints whose
+``A``-components are positive (negative ones by inclusion-exclusion). The conditional density is the
+ratio of two density expansions. For lattice variables the factor ``s_j/\{2\sinh(s_j/2)\}``, which
+replaces one in the inversion integral after the continuity correction, is expanded about the
+saddlepoint as an analytic amplitude; with no conditioning components this is the lattice version
+of the expansions above, with the continuity-corrected approximations of Daniels (1987) as the
+first-order case. The terms are evaluated in the canonical coordinates in which the tail and the
+conditioning components are uncorrelated under the tilted distribution, which the paper shows to be
+essential in double precision.
+
+## Quantiles and normalization
+
+Quantiles of the expansions are found by Newton's method on the saddlepoint itself, ``x = K'(s)``,
+so that no saddlepoint equation is solved during the search; the same parametrization turns the
+total mass of a density expansion into an integral over the domain of ``K``,
+``\int f(K'(s))\det K''(s)\,ds``, which is what `normalize = true` divides by.
+
 ## Accuracy in practice
 
 In the examples of the paper (means of five to ten observations of exponential variables, pairs
@@ -89,10 +118,14 @@ of one to thirty percent, order two reduces them to ``10^{-3}`` to ``10^{-4}``, 
 ## References
 
 - Broda, S. A. and Kan, R. *Uniform saddlepoint expansions for multivariate tail probabilities.*
+- Broda, S. A. and Kan, R. (2026). *Conditional saddlepoint expansions of arbitrary order.* Draft.
+- Barndorff-Nielsen, O. E. and Cox, D. R. (1979). Edgeworth and saddle-point approximations with statistical applications. *J. R. Statist. Soc. B* 41, 279-312.
 - Bao, Y., Broda, S. A. and Kan, R. *Inversion formulas and saddlepoint expansions for Studentized means.*
 - Daniels, H. E. (1954). Saddlepoint approximations in statistics. *Ann. Math. Statist.* 25, 631-650.
 - Daniels, H. E. (1987). Tail probability approximations. *Int. Statist. Rev.* 55, 37-48.
 - Hauschildt, R. and Robinson, J. (1976). *Saddlepoint approximations for the probability of large deviations.* Preprint.
+- Kolassa, J. E. (1996). Higher-order approximations to conditional distribution functions. *Ann. Statist.* 24, 353-364.
 - Kolassa, J. E. (2003). Multivariate saddlepoint tail probability approximations. *Ann. Statist.* 31, 274-286.
 - Kolassa, J. E. and Li, J. (2010). Multivariate saddlepoint approximations in tail probability and conditional inference. *Bernoulli* 16, 1191-1207.
+- Skovgaard, I. M. (1987). Saddlepoint expansions for conditional distributions. *J. Appl. Probab.* 24, 875-887.
 - Wang, S. (1990). Saddlepoint approximations for bivariate distributions. *J. Appl. Probab.* 27, 586-597.

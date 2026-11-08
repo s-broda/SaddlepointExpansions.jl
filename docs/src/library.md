@@ -13,11 +13,17 @@ by Taylor-mode differentiation and evaluated in any precision.
 | [`wishart_diag_cgf`](@ref)`(V, n)` | the diagonal of ``W \sim W_d(n, V)`` |
 | [`common_component_cgf`](@ref)`(m, lam)` | ``Q_j = X_j + X_0`` with independent noncentral chi-squared ``X_i`` |
 | [`uniform_cgf`](@ref)`(a, b)` | uniform on ``[a, b]`` |
+| [`poisson_cgf`](@ref)`(lam)` | Poisson (lattice) |
+| [`binomial_cgf`](@ref)`(m, p)` | binomial (lattice) |
+| [`negative_binomial_cgf`](@ref)`(r, p)` | negative binomial, failures before the ``r``-th success (lattice) |
+| [`logistic_regression_cgf`](@ref)`(X; beta)` | the sufficient statistic ``X'y`` of a logistic regression (lattice for integer ``X``) |
 
 The examples of the paper are: `exponential_sums_cgf([1 0; 1 1; 0 1]; n=10, shift=[-2, -2])`
 (Wang 1990, Table 1), `exponential_sums_cgf([1 0; 1 1; 0 1]; n)` (Kolassa and Li 2010, Tables 3 to
 6), `wishart_diag_cgf(0.75I + 0.25, n)` (Table 8), `common_component_cgf([m1, m2, m0], [λ1, λ2, λ0])`
-(Table 9) and its trivariate version.
+(Table 9) and its trivariate version. The lattice ones are used with `lattice = true` in
+[`tailprob`](@ref), [`density`](@ref), [`conditional_tailprob`](@ref) and
+[`conditional_density`](@ref).
 
 ## Transformations
 
